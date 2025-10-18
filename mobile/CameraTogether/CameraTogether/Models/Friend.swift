@@ -20,7 +20,11 @@ class Friend {
     var name: String
     var iconName: String
 
-    init(id: UUID = UUID(), requesterId: UUID, addresseeId: UUID, status: FriendStatus = FriendStatus.pending, name: String = "", iconName: String = "person.circle.fill") {
+    init(
+        id: UUID = UUID(), requesterId: UUID, addresseeId: UUID,
+        status: FriendStatus = FriendStatus.pending, name: String = "",
+        iconName: String = "person.circle.fill"
+    ) {
         self.id = id
         self.requesterId = requesterId
         self.addresseeId = addresseeId

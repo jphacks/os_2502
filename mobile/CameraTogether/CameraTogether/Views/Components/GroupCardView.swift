@@ -82,8 +82,12 @@ struct GroupCardView: View {
                 colors = [Color.orange.opacity(0.4), Color.yellow.opacity(0.3)]
             case .countdown:
                 colors = [Color.green.opacity(0.4), Color.mint.opacity(0.3)]
+            case .photoTaking:
+                colors = [Color.purple.opacity(0.4), Color.pink.opacity(0.3)]
             case .completed:
                 colors = [Color.gray.opacity(0.3), Color.gray.opacity(0.2)]
+            case .expired:
+                colors = [Color.red.opacity(0.3), Color.gray.opacity(0.2)]
             }
         } else {
             switch group.status {
@@ -93,8 +97,12 @@ struct GroupCardView: View {
                 colors = [Color.orange.opacity(0.6), Color.yellow.opacity(0.4)]
             case .countdown:
                 colors = [Color.green.opacity(0.6), Color.mint.opacity(0.4)]
+            case .photoTaking:
+                colors = [Color.purple.opacity(0.6), Color.pink.opacity(0.4)]
             case .completed:
                 colors = [Color.gray.opacity(0.4), Color.gray.opacity(0.3)]
+            case .expired:
+                colors = [Color.red.opacity(0.4), Color.gray.opacity(0.3)]
             }
         }
         return LinearGradient(
@@ -179,6 +187,19 @@ struct GroupCardView: View {
                 .clipShape(Capsule())
             case .countdown:
                 HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.caption2)
+                    Text("カウントダウン")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(cardTextColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(badgeBackground)
+                .clipShape(Capsule())
+            case .photoTaking:
+                HStack(spacing: 4) {
                     Image(systemName: "camera.fill")
                         .font(.caption2)
                     Text("撮影中")
@@ -195,6 +216,19 @@ struct GroupCardView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption2)
                     Text("完了")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(cardTextColor.opacity(0.8))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(badgeBackground.opacity(0.7))
+                .clipShape(Capsule())
+            case .expired:
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                    Text("期限切れ")
                         .font(.caption2)
                         .fontWeight(.semibold)
                 }

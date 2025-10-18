@@ -5,9 +5,9 @@ struct AppConfig {
     /// モックデータを使用するかどうか
     static var useMockData: Bool {
         #if DEBUG
-        return true  // デバッグビルドではデフォルトでモックデータを使用
+            return false  // デバッグビルドではデフォルトでモックデータを使用
         #else
-        return false
+            return false
         #endif
     }
 
@@ -19,9 +19,9 @@ struct AppConfig {
     /// ログ出力を有効にするか
     static var enableLogging: Bool {
         #if DEBUG
-        return true
+            return true
         #else
-        return false
+            return true
         #endif
     }
 }

@@ -1,3 +1,4 @@
+import FirebaseAuth
 import SwiftUI
 
 struct SettingsSheetView: View {
@@ -57,9 +58,8 @@ struct SettingsSheetView: View {
     }
 
     private var userInfoSection: some View {
-        // TODO: 結合
         SettingsUserInfoSection(
-            userName: "noonyuu",
+            userName: authManager.backendUser?.name ?? authManager.user?.displayName ?? "ユーザー",
             iconName: "collage-icon"
         )
     }

@@ -1,5 +1,5 @@
-import FirebaseCore
 import FirebaseAuth
+import FirebaseCore
 import GoogleSignIn
 import SwiftUI
 

@@ -436,12 +436,22 @@ func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"message": "グループを削除しました"})
 }
 
-// ListGroups retrieves all groups
+// ListGroups retrieves all groups, optionally filtered by owner_user_id
 func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	ownerUserID := r.URL.Query().Get("owner_user_id")
 
-	groups, err := h.useCase.ListGroups(r.Context(), limit, offset)
+	var groups []*group.Group
+	var err error
+
+	// owner_user_idが指定されている場合はそのユーザーのグループのみを取得
+	if ownerUserID != "" {
+		groups, err = h.useCase.GetGroupsByOwnerUserID(r.Context(), ownerUserID, limit, offset)
+	} else {
+		groups, err = h.useCase.ListGroups(r.Context(), limit, offset)
+	}
+
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "グループの取得に失敗しました")
 		return

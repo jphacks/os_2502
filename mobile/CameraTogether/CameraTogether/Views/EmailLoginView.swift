@@ -1,5 +1,5 @@
-import SwiftUI
 import FirebaseAuth
+import SwiftUI
 
 struct EmailLoginView: View {
     @Environment(\.dismiss) private var dismiss

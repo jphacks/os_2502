@@ -16,7 +16,9 @@ class GroupAPIService: APIServiceBase {
     ///   - limit: 取得件数（デフォルト10）
     ///   - offset: オフセット（デフォルト0）
     /// - Returns: グループの配列
-    func getGroups(ownerUserId: String? = nil, limit: Int = 10, offset: Int = 0) async throws -> [APIGroup] {
+    func getGroups(ownerUserId: String? = nil, limit: Int = 10, offset: Int = 0) async throws
+        -> [APIGroup]
+    {
         // モックデータを使用する場合
         if AppConfig.useMockData {
             let response = try MockDataService.shared.getGroups()
@@ -24,10 +26,11 @@ class GroupAPIService: APIServiceBase {
         }
 
         // 実際のAPI呼び出し
-        var components = URLComponents(url: baseURL.appendingPathComponent("groups"), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("groups"), resolvingAgainstBaseURL: false)!
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "limit", value: "\(limit)"),
-            URLQueryItem(name: "offset", value: "\(offset)")
+            URLQueryItem(name: "offset", value: "\(offset)"),
         ]
         if let ownerUserId = ownerUserId {
             queryItems.append(URLQueryItem(name: "owner_user_id", value: ownerUserId))
@@ -51,7 +54,9 @@ class GroupAPIService: APIServiceBase {
     ///   - name: グループ名
     ///   - groupType: グループタイプ（デフォルト: global_temporary）
     /// - Returns: 作成されたグループ
-    func createGroup(ownerUserId: String, name: String, groupType: String = "global_temporary") async throws -> APIGroup {
+    func createGroup(ownerUserId: String, name: String, groupType: String = "global_temporary")
+        async throws -> APIGroup
+    {
         let url = baseURL.appendingPathComponent("groups")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -60,11 +65,107 @@ class GroupAPIService: APIServiceBase {
         let body: [String: Any] = [
             "owner_user_id": ownerUserId,
             "name": name,
-            "group_type": groupType
+            "group_type": groupType,
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         return try await performRequest(request, expecting: APIGroup.self, successStatusCode: 201)
+    }
+
+    /// グループ取得
+    /// - Parameter id: グループID
+    /// - Returns: グループ情報
+    func getGroup(id: String) async throws -> APIGroup {
+        let url = baseURL.appendingPathComponent("groups").appendingPathComponent(id)
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        return try await performRequest(request, expecting: APIGroup.self)
+    }
+
+    /// グループに参加
+    /// - Parameters:
+    ///   - token: 招待トークン
+    ///   - userId: 参加するユーザーID
+    /// - Returns: 参加後のグループ情報
+    func joinGroup(token: String, userId: String) async throws -> APIGroup {
+        let url = baseURL.appendingPathComponent("groups/join").appendingPathComponent(token)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = JoinGroupRequest(userId: userId)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        return try await performRequest(request, expecting: APIGroup.self)
+    }
+
+    /// グループメンバー一覧取得
+    /// - Parameter groupId: グループID
+    /// - Returns: メンバー一覧
+    func getGroupMembers(groupId: String) async throws -> [GroupMember] {
+        let url = baseURL.appendingPathComponent("groups").appendingPathComponent(groupId)
+            .appendingPathComponent("members")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        let response = try await performRequest(request, expecting: GroupMemberListResponse.self)
+        return response.members
+    }
+
+    /// メンバー確定
+    /// - Parameters:
+    ///   - groupId: グループID
+    ///   - userId: オーナーのユーザーID
+    /// - Returns: 更新後のグループ情報
+    func finalizeGroupMembers(groupId: String, userId: String) async throws -> APIGroup {
+        let url = baseURL.appendingPathComponent("groups").appendingPathComponent(groupId)
+            .appendingPathComponent("finalize")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = FinalizeGroupRequest(userId: userId)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        return try await performRequest(request, expecting: APIGroup.self)
+    }
+
+    /// 準備完了
+    /// - Parameters:
+    ///   - groupId: グループID
+    ///   - userId: ユーザーID
+    func markMemberReady(groupId: String, userId: String) async throws {
+        let url = baseURL.appendingPathComponent("groups").appendingPathComponent(groupId)
+            .appendingPathComponent("ready")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = MarkReadyRequest(userId: userId)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        try await performRequest(request, successStatusCode: 200)
+    }
+
+    /// グループ離脱
+    /// - Parameters:
+    ///   - groupId: グループID
+    ///   - userId: ユーザーID
+    func leaveGroup(groupId: String, userId: String) async throws {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("groups").appendingPathComponent(groupId)
+                .appendingPathComponent("leave"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "user_id", value: userId)]
+
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+
+        try await performRequest(request, successStatusCode: 200)
     }
 
     /// グループ削除
@@ -72,7 +173,9 @@ class GroupAPIService: APIServiceBase {
     ///   - id: グループID
     ///   - userId: ユーザーID（オーナー確認用）
     func deleteGroup(id: String, userId: String) async throws {
-        var components = URLComponents(url: baseURL.appendingPathComponent("groups").appendingPathComponent(id), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("groups").appendingPathComponent(id),
+            resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "user_id", value: userId)]
 
         guard let url = components.url else {

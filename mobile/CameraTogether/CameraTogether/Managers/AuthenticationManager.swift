@@ -16,10 +16,17 @@ class AuthenticationManager {
 
     func checkAuth() {
         user = Auth.auth().currentUser
+
+        // 既にFirebase認証されている場合、バックエンドユーザー情報を取得
+        if let firebaseUser = user {
+            Task {
+                await createOrFetchBackendUser(firebaseUID: firebaseUser.uid)
+            }
+        }
     }
 
-    /// バックエンドにユーザーを作成
-    private func createBackendUser(firebaseUID: String) async {
+    /// バックエンドにユーザーを作成または取得
+    private func createOrFetchBackendUser(firebaseUID: String) async {
         do {
             let displayName = user?.displayName ?? "ユーザー"
             let newUser = try await UserAPIService.shared.createUser(
@@ -28,10 +35,20 @@ class AuthenticationManager {
             )
             backendUser = newUser
         } catch {
-            // 409エラー（既に存在）の場合は無視
+            // 409エラー（既に存在）の場合は既存ユーザーを取得
             if let apiError = error as? APIError,
-               case .httpError(let statusCode) = apiError,
-               statusCode == 409 {
+                case .httpError(let statusCode) = apiError,
+                statusCode == 409
+            {
+                do {
+                    let existingUser = try await UserAPIService.shared.getUserByFirebaseUID(
+                        firebaseUID: firebaseUID)
+                    backendUser = existingUser
+                } catch {
+                    print("既存ユーザーの取得に失敗: \(error)")
+                }
+            } else {
+                print("バックエンドユーザー作成に失敗: \(error)")
             }
         }
     }
@@ -46,8 +63,8 @@ class AuthenticationManager {
         let result = try await Auth.auth().signIn(with: credential)
         user = result.user
 
-        // バックエンドユーザーを作成（既に存在する場合は409エラーで無視）
-        await createBackendUser(firebaseUID: result.user.uid)
+        // バックエンドユーザーを作成または取得
+        await createOrFetchBackendUser(firebaseUID: result.user.uid)
     }
 
     // MARK: - Google Sign In
@@ -59,8 +76,8 @@ class AuthenticationManager {
         let result = try await Auth.auth().signIn(with: credential)
         user = result.user
 
-        // バックエンドユーザーを作成（既に存在する場合は409エラーで無視）
-        await createBackendUser(firebaseUID: result.user.uid)
+        // バックエンドユーザーを作成または取得
+        await createOrFetchBackendUser(firebaseUID: result.user.uid)
     }
 
     // MARK: - Email/Password Sign In
@@ -68,8 +85,8 @@ class AuthenticationManager {
         let result = try await Auth.auth().signIn(withEmail: email, password: password)
         user = result.user
 
-        // バックエンドユーザーを作成（既に存在する場合は409エラーで無視）
-        await createBackendUser(firebaseUID: result.user.uid)
+        // バックエンドユーザーを作成または取得
+        await createOrFetchBackendUser(firebaseUID: result.user.uid)
     }
 
     // MARK: - Email/Password Sign Up
@@ -78,7 +95,7 @@ class AuthenticationManager {
         user = result.user
 
         // バックエンドユーザーを作成
-        await createBackendUser(firebaseUID: result.user.uid)
+        await createOrFetchBackendUser(firebaseUID: result.user.uid)
     }
 
     // MARK: - Sign Out
