@@ -1,0 +1,15 @@
+# SQLBoiler configuration file
+output = "internal/infrastructure/db/models"
+wipe = true
+no-tests = false
+
+[mysql]
+dbname = "collage"
+host = "localhost"
+port = 3306
+user = "collage"
+pass = "collagepass"
+sslmode = "false"
+schema = "collage"
+blacklist = []
+whitelist = []
