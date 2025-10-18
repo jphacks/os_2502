@@ -6,7 +6,13 @@ struct ContentView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.appColors) var appColors
     @State private var isShowingSettings = false
+    @State private var isShowingFriends = false
+    @State private var isShowingNotifications = false
+    @State private var hasUnreadNotifications = true
+
     @State private var groupManager = GroupManager()
+    @State private var groupListViewModel = GroupListViewModel()
+
     @State private var authManager = AuthenticationManager()
 
     var body: some View {
@@ -100,8 +106,14 @@ struct ContentView: View {
 
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 16) {
-                                            ForEach(activeGroups) { group in
-                                                GroupCard(group: group)
+                                            ForEach(groupListViewModel.getActiveGroups()) { group in
+                                                NavigationLink {
+                                                    groupDetailView(for: group)
+                                                } label: {
+                                                    GroupCardView(group: group)
+                                                        .frame(width: 280)
+                                                }
+                                                .buttonStyle(.plain)
                                             }
                                         }
                                         .padding(.horizontal, 24)
@@ -157,6 +169,33 @@ struct ContentView: View {
             .navigationTitle("Collage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    HStack(spacing: 16) {
+                        Button {
+                            isShowingFriends = true
+                        } label: {
+                            Image(systemName: "person.2.fill")
+                                .foregroundColor(appColors.textPrimary)
+                        }
+
+                        Button {
+                            isShowingNotifications = true
+                            hasUnreadNotifications = false
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bell.fill")
+                                    .foregroundColor(appColors.textPrimary)
+
+                                if hasUnreadNotifications {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 4, y: -4)
+                                }
+                            }
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         isShowingSettings = true
@@ -171,7 +210,17 @@ struct ContentView: View {
             .sheet(isPresented: $isShowingSettings) {
                 SettingsSheetView(authManager: authManager)
             }
+            .sheet(isPresented: $isShowingNotifications) {
+                NotificationListView()
+            }
+            .fullScreenCover(isPresented: $isShowingFriends) {
+                FriendListView()
+            }
         }
+    }
+    @ViewBuilder
+    private func groupDetailView(for group: CollageGroup) -> some View {
+        GroupDetailWrapperView(group: group)
     }
 
 }
@@ -353,6 +402,18 @@ struct StatusBadge: View {
         default:
             return .secondary
         }
+    }
+}
+
+struct GroupDetailWrapperView: View {
+    let group: CollageGroup
+    @State private var viewModel = CollageGroupViewModel()
+
+    var body: some View {
+        SimpleWaitingRoomView(viewModel: viewModel)
+            .onAppear {
+                viewModel.currentGroup = group
+            }
     }
 }
 

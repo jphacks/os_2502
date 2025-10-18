@@ -42,6 +42,14 @@ struct AppColors {
         colorScheme == .dark ? .white.opacity(0.7) : .secondary
     }
 
+    var textColor: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+
+    var backgroundOpacity: Double {
+        colorScheme == .dark ? 0.2 : 0.7
+    }
+
     var backgroundGradient: some View {
         Group {
             if colorScheme == .dark {

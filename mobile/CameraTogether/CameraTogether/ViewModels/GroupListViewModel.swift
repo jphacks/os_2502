@@ -3,34 +3,10 @@ import SwiftUI
 
 @Observable
 class GroupListViewModel {
-    var groups: [CollageGroup] = []
+    var groups: [CollageGroup]
 
     init() {
-        loadMockGroups()
-    }
-
-    func addGroup(_ group: CollageGroup) {
-        groups.append(group)
-    }
-
-    func removeGroup(_ group: CollageGroup) {
-        groups.removeAll { $0.id == group.id }
-    }
-
-    func getActiveGroups() -> [CollageGroup] {
-        groups.filter { group in
-            group.status != .completed
-        }
-    }
-
-    func getCompletedGroups() -> [CollageGroup] {
-        groups.filter { group in
-            group.status == .completed
-        }
-    }
-
-    private func loadMockGroups() {
-        // モックデータ
+        // 初期化時に直接モックデータを設定
         var group1 = CollageGroup(
             type: .temporaryLocal,
             maxMembers: 5,
@@ -67,6 +43,26 @@ class GroupListViewModel {
         ]
         group3.status = .completed
 
-        groups = [group1, group2, group3]
+        self.groups = [group1, group2, group3]
+    }
+
+    func addGroup(_ group: CollageGroup) {
+        groups.append(group)
+    }
+
+    func removeGroup(_ group: CollageGroup) {
+        groups.removeAll { $0.id == group.id }
+    }
+
+    func getActiveGroups() -> [CollageGroup] {
+        groups.filter { group in
+            group.status != .completed
+        }
+    }
+
+    func getCompletedGroups() -> [CollageGroup] {
+        groups.filter { group in
+            group.status == .completed
+        }
     }
 }
