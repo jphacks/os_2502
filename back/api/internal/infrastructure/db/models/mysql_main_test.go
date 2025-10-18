@@ -17,7 +17,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kat-co/vala"
 	"github.com/spf13/viper"
-	"github.com/volatiletech/randomize"
+	"github.com/aarondl/randomize"
 	"github.com/aarondl/sqlboiler/v4/drivers/sqlboiler-mysql/driver"
 )
 

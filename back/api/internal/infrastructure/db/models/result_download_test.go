@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/volatiletech/randomize"
+	"github.com/aarondl/randomize"
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries"
 	"github.com/aarondl/strmangle"
