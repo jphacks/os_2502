@@ -200,8 +200,9 @@ struct SimpleWaitingRoomView: View {
 }
 
 #Preview {
-    let viewModel = CollageGroupViewModel()
-    viewModel.createGroup(type: .temporaryLocal, maxMembers: 5)
+    let authManager = AuthenticationManager()
+    let viewModel = CollageGroupViewModel(authManager: authManager)
+    let _ = viewModel.createGroupLocal(type: .temporaryLocal, maxMembers: 5)
 
     return NavigationStack {
         SimpleWaitingRoomView(viewModel: viewModel)

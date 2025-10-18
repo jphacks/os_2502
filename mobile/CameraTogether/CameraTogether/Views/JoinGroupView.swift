@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct JoinGroupView: View {
-    @State private var viewModel = CollageGroupViewModel()
+    let authManager: AuthenticationManager
+    @State private var viewModel: CollageGroupViewModel?
     @State private var inviteCode: String = ""
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -80,21 +81,29 @@ struct JoinGroupView: View {
             QRScannerSheet(scannedCode: $inviteCode)
         }
         .navigationDestination(isPresented: $showingWaitingRoom) {
-            SimpleWaitingRoomView(viewModel: viewModel)
+            if let viewModel = viewModel {
+                SimpleWaitingRoomView(viewModel: viewModel)
+            }
         }
         .onChange(of: inviteCode) { _, newValue in
             if !newValue.isEmpty && showingQRScanner {
                 showingQRScanner = false
             }
         }
+        .onAppear {
+            if viewModel == nil {
+                viewModel = CollageGroupViewModel(authManager: authManager)
+            }
+        }
     }
 
     private func joinGroup() {
+        guard let vm = viewModel else { return }
         // 実際のアプリでは、ここでサーバーに招待コードを送信してグループ情報を取得
         // デモとして、ダミーのグループを作成
-        viewModel.createGroup(type: .temporaryGlobal, maxMembers: 10)
+        vm.createGroupLocal(type: .temporaryGlobal, maxMembers: 10)
 
-        if viewModel.currentGroup != nil {
+        if vm.currentGroup != nil {
             showingWaitingRoom = true
         } else {
             errorMessage = "招待コードが無効です"
@@ -105,6 +114,6 @@ struct JoinGroupView: View {
 
 #Preview {
     NavigationStack {
-        JoinGroupView()
+        JoinGroupView(authManager: AuthenticationManager())
     }
 }

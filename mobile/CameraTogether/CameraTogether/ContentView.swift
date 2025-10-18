@@ -17,12 +17,7 @@ struct ContentView: View {
 
     var body: some View {
         if !authManager.isAuthenticated {
-            // LoginView(authManager: authManager)
-            mainContent
-                .task {
-                    // 画面表示時にグループ一覧を取得
-                    await groupManager.fetchGroups()
-                }
+            LoginView(authManager: authManager)
         } else {
             mainContent
                 .task {
@@ -44,7 +39,7 @@ struct ContentView: View {
                             .frame(height: 8)
 
                         NavigationLink {
-                            CollageGroupMainView()
+                            CollageGroupMainView(authManager: authManager)
                         } label: {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
@@ -407,13 +402,23 @@ struct StatusBadge: View {
 
 struct GroupDetailWrapperView: View {
     let group: CollageGroup
-    @State private var viewModel = CollageGroupViewModel()
+    @State private var authManager = AuthenticationManager()
+    @State private var viewModel: CollageGroupViewModel?
 
     var body: some View {
-        SimpleWaitingRoomView(viewModel: viewModel)
-            .onAppear {
-                viewModel.currentGroup = group
+        Group {
+            if let viewModel = viewModel {
+                SimpleWaitingRoomView(viewModel: viewModel)
+            } else {
+                ProgressView()
             }
+        }
+        .onAppear {
+            if viewModel == nil {
+                viewModel = CollageGroupViewModel(authManager: authManager)
+                viewModel?.currentGroup = group
+            }
+        }
     }
 }
 

@@ -125,10 +125,11 @@ struct CameraPreviewView: UIViewRepresentable {
 }
 
 #Preview {
-    @Previewable @State var viewModel = CollageGroupViewModel()
-    let _ = viewModel.createGroup(type: .temporaryLocal, maxMembers: 5)
+    let authManager = AuthenticationManager()
+    let viewModel = CollageGroupViewModel(authManager: authManager)
+    let _ = viewModel.createGroupLocal(type: .temporaryLocal, maxMembers: 5)
 
-    NavigationStack {
+    return NavigationStack {
         CountdownView(viewModel: viewModel)
     }
 }

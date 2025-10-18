@@ -30,6 +30,24 @@ class UserAPIService: APIServiceBase {
         return try await performRequest(request, expecting: User.self, successStatusCode: 201)
     }
 
+    /// Firebase UIDでユーザー取得
+    /// - Parameter firebaseUID: Firebase Authentication UID
+    /// - Returns: ユーザー情報
+    func getUserByFirebaseUID(firebaseUID: String) async throws -> User {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("users/firebase"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "firebase_uid", value: firebaseUID)]
+
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        return try await performRequest(request, expecting: User.self)
+    }
+
     /// ユーザー削除
     /// - Parameter id: ユーザーID
     func deleteUser(id: String) async throws {

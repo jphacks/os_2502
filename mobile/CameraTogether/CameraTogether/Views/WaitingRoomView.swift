@@ -12,7 +12,7 @@ struct WaitingRoomView: View {
                     recruitingView(group: group)
                 case .readyCheck:
                     readyCheckView(group: group)
-                case .countdown, .completed:
+                case .countdown, .photoTaking, .completed, .expired:
                     EmptyView()
                 }
             }
@@ -208,10 +208,11 @@ struct WaitingRoomView: View {
 }
 
 #Preview {
-    @Previewable @State var viewModel = CollageGroupViewModel()
-    let _ = viewModel.createGroup(type: .temporaryLocal, maxMembers: 5)
+    let authManager = AuthenticationManager()
+    let viewModel = CollageGroupViewModel(authManager: authManager)
+    let _ = viewModel.createGroupLocal(type: .temporaryLocal, maxMembers: 5)
 
-    NavigationStack {
+    return NavigationStack {
         WaitingRoomView(viewModel: viewModel)
     }
 }

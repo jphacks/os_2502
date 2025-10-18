@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct CreateGroupView: View {
-    @State private var viewModel = CollageGroupViewModel()
+    let authManager: AuthenticationManager
+    @State private var viewModel: CollageGroupViewModel?
     @State private var selectedGroupType: GroupType = .temporaryLocal
     @State private var maxMembers: Int = 10
     @State private var showingWaitingRoom = false
@@ -44,8 +45,10 @@ struct CreateGroupView: View {
             Spacer()
 
             Button {
-                viewModel.createGroup(type: selectedGroupType, maxMembers: maxMembers)
-                showingWaitingRoom = true
+                if let vm = viewModel {
+                    vm.createGroupLocal(type: selectedGroupType, maxMembers: maxMembers)
+                    showingWaitingRoom = true
+                }
             } label: {
                 Text("グループを作成")
                     .font(.title2)
@@ -59,13 +62,20 @@ struct CreateGroupView: View {
         }
         .padding()
         .navigationDestination(isPresented: $showingWaitingRoom) {
-            WaitingRoomView(viewModel: viewModel)
+            if let viewModel = viewModel {
+                WaitingRoomView(viewModel: viewModel)
+            }
+        }
+        .onAppear {
+            if viewModel == nil {
+                viewModel = CollageGroupViewModel(authManager: authManager)
+            }
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        CreateGroupView()
+        CreateGroupView(authManager: AuthenticationManager())
     }
 }

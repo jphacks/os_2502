@@ -1,10 +1,13 @@
 import SwiftUI
 
 struct SimpleCreateGroupView: View {
-    @State private var viewModel = CollageGroupViewModel()
+    let authManager: AuthenticationManager
+    @State private var viewModel: CollageGroupViewModel?
     @State private var selectedGroupType: GroupType = .temporaryLocal
     @State private var showingWaitingRoom = false
+    @State private var groupName: String = ""
     @Environment(\.appColors) var appColors
+    @Environment(\.dismiss) var dismiss
 
     var body: some View {
         ZStack {
@@ -15,6 +18,17 @@ struct SimpleCreateGroupView: View {
                 Text("グループ作成")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+
+                // グループ名入力
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("グループ名")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    TextField("例: 友達グループ", text: $groupName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.horizontal, 4)
+                }
+                .padding(.horizontal, 16)
 
                 VStack(spacing: 20) {
                     GroupTypeButton(
@@ -48,32 +62,69 @@ struct SimpleCreateGroupView: View {
 
                 Spacer()
 
-                Button {
-                    createGroup()
-                } label: {
-                    Text("グループを作成")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
+                // エラーメッセージ
+                if let errorMessage = viewModel?.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
+
+                Button {
+                    Task {
+                        await createGroup()
+                    }
+                } label: {
+                    if viewModel?.isLoading == true {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                    } else {
+                        Text("グループを作成")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                    }
+                }
+                .background(groupName.isEmpty ? Color.gray : Color.blue)
+                .cornerRadius(12)
+                .disabled(groupName.isEmpty || viewModel?.isLoading == true)
+                .padding(.horizontal)
             }
             .padding()
         }
         .navigationDestination(isPresented: $showingWaitingRoom) {
-            SimpleWaitingRoomView(viewModel: viewModel)
+            if let viewModel = viewModel {
+                SimpleWaitingRoomView(viewModel: viewModel)
+            }
+        }
+        .onAppear {
+            if viewModel == nil {
+                viewModel = CollageGroupViewModel(authManager: authManager)
+            }
         }
     }
 
-    private func createGroup() {
-        viewModel.createGroup(type: selectedGroupType, maxMembers: 10)
-        // モックデータとして他のメンバーを追加
-        _ = viewModel.addMember(name: "太郎")
-        _ = viewModel.addMember(name: "花子")
-        showingWaitingRoom = true
+    private func createGroup() async {
+        let name = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        guard let vm = viewModel else { return }
+
+        // API経由でグループ作成
+        await vm.createGroup(
+            type: selectedGroupType,
+            name: name,
+            maxMembers: 10
+        )
+
+        // 作成成功したら待機室へ遷移
+        if vm.currentGroup != nil {
+            showingWaitingRoom = true
+        }
     }
 }
 
@@ -122,6 +173,6 @@ struct GroupTypeButton: View {
 
 #Preview {
     NavigationStack {
-        SimpleCreateGroupView()
+        SimpleCreateGroupView(authManager: AuthenticationManager())
     }
 }

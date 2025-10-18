@@ -4,46 +4,14 @@ import SwiftUI
 @Observable
 class GroupListViewModel {
     var groups: [CollageGroup]
+    var isLoading: Bool = false
+    var errorMessage: String?
+
+    private let groupAPI = GroupAPIService.shared
 
     init() {
-        // 初期化時に直接モックデータを設定
-        var group1 = CollageGroup(
-            type: .temporaryLocal,
-            maxMembers: 5,
-            ownerId: UUID().uuidString
-        )
-        group1.members = [
-            CollageGroupMember(name: "あなた"),
-            CollageGroupMember(name: "太郎"),
-            CollageGroupMember(name: "花子"),
-        ]
-        group1.status = .recruiting
-
-        var group2 = CollageGroup(
-            type: .temporaryGlobal,
-            maxMembers: 10,
-            ownerId: UUID().uuidString
-        )
-        group2.members = [
-            CollageGroupMember(name: "あなた"),
-            CollageGroupMember(name: "次郎"),
-        ]
-        group2.status = .readyCheck
-
-        var group3 = CollageGroup(
-            type: .fixed,
-            maxMembers: 4,
-            ownerId: UUID().uuidString
-        )
-        group3.members = [
-            CollageGroupMember(name: "あなた"),
-            CollageGroupMember(name: "友達A"),
-            CollageGroupMember(name: "友達B"),
-            CollageGroupMember(name: "友達C"),
-        ]
-        group3.status = .completed
-
-        self.groups = [group1, group2, group3]
+        // 初期状態は空のリスト
+        self.groups = []
     }
 
     func addGroup(_ group: CollageGroup) {
@@ -63,6 +31,33 @@ class GroupListViewModel {
     func getCompletedGroups() -> [CollageGroup] {
         groups.filter { group in
             group.status == .completed
+        }
+    }
+
+    /// APIからグループ一覧を取得
+    @MainActor
+    func fetchGroups(ownerUserId: String? = nil) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let apiGroups = try await groupAPI.getGroups(
+                ownerUserId: ownerUserId,
+                limit: 100,
+                offset: 0
+            )
+
+            // APIGroupをCollageGroupに変換
+            let convertedGroups = apiGroups.compactMap { apiGroup in
+                CollageGroup(from: apiGroup)
+            }
+
+            groups = convertedGroups
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = "グループ一覧の取得に失敗しました: \(error.localizedDescription)"
+            print("Error fetching groups: \(error)")
         }
     }
 }

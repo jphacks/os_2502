@@ -91,10 +91,11 @@ struct ResultView: View {
 }
 
 #Preview {
-    @Previewable @State var viewModel = CollageGroupViewModel()
-    let _ = viewModel.createGroup(type: .temporaryLocal, maxMembers: 3)
+    let authManager = AuthenticationManager()
+    let viewModel = CollageGroupViewModel(authManager: authManager)
+    let _ = viewModel.createGroupLocal(type: .temporaryLocal, maxMembers: 3)
 
-    NavigationStack {
+    return NavigationStack {
         ResultView(viewModel: viewModel, capturedImage: nil)
     }
 }
