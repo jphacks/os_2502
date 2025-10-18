@@ -1,15 +1,14 @@
-# SQLBoiler configuration file
-output = "internal/infrastructure/db/models"
-wipe = true
-no-tests = false
-
 [mysql]
-dbname = "collage"
-host = "localhost"
-port = 3306
-user = "collage"
-pass = "collagepass"
-sslmode = "false"
-schema = "collage"
-blacklist = []
-whitelist = []
+  dbname="collage"
+  host="db"
+  port="3306"
+  user="collage"
+  pass="collagepass"
+  sslmode="false"
+
+output = "internal/infrastructure/models"
+pkgname = "models"
+wipe = true
+no-tests = true
+no-hooks = false
+no-auto-timestamps = false
