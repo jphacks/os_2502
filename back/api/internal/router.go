@@ -78,6 +78,13 @@ func (r *Router) SetupRoutes() http.Handler {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	mux.HandleFunc("/api/users/firebase", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			userHandler.GetUserByFirebaseUID(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	mux.HandleFunc("/api/users/", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -220,6 +227,11 @@ func (r *Router) SetupRoutes() http.Handler {
 	// WebSocket エンドポイント
 	mux.HandleFunc("/api/ws/upload-status", websocketHandler.HandleUploadStatus)
 	mux.HandleFunc("/api/status", websocketHandler.HandleStatus)
+
+	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
   
 	return middleware.CORSMiddleware(mux)
 }
