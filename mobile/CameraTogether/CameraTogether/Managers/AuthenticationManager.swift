@@ -4,7 +4,8 @@ import Foundation
 @MainActor
 @Observable
 class AuthenticationManager {
-    var user: User?
+    var user: FirebaseAuth.User?
+    var backendUser: APIService.User?
     var isAuthenticated: Bool {
         user != nil
     }
@@ -17,7 +18,25 @@ class AuthenticationManager {
         user = Auth.auth().currentUser
     }
 
-    // Apple Sign In
+    /// バックエンドにユーザーを作成
+    private func createBackendUser(firebaseUID: String) async {
+        do {
+            let displayName = user?.displayName ?? "ユーザー"
+            let newUser = try await APIService.shared.createUser(
+                firebaseUID: firebaseUID,
+                name: displayName
+            )
+            backendUser = newUser
+        } catch {
+            // 409エラー（既に存在）の場合は無視
+            if let apiError = error as? APIError,
+               case .httpError(let statusCode) = apiError,
+               statusCode == 409 {
+            }
+        }
+    }
+
+    // MARK: - Apple Sign In
     func signInWithApple(idToken: String, nonce: String) async throws {
         let credential = OAuthProvider.credential(
             providerID: .apple,
@@ -26,9 +45,12 @@ class AuthenticationManager {
         )
         let result = try await Auth.auth().signIn(with: credential)
         user = result.user
+
+        // バックエンドユーザーを作成（既に存在する場合は409エラーで無視）
+        await createBackendUser(firebaseUID: result.user.uid)
     }
 
-    // Google Sign In
+    // MARK: - Google Sign In
     func signInWithGoogle(idToken: String, accessToken: String) async throws {
         let credential = GoogleAuthProvider.credential(
             withIDToken: idToken,
@@ -36,38 +58,57 @@ class AuthenticationManager {
         )
         let result = try await Auth.auth().signIn(with: credential)
         user = result.user
+
+        // バックエンドユーザーを作成（既に存在する場合は409エラーで無視）
+        await createBackendUser(firebaseUID: result.user.uid)
     }
 
-    // Email/Password Sign In
+    // MARK: - Email/Password Sign In
     func signInWithEmail(email: String, password: String) async throws {
         let result = try await Auth.auth().signIn(withEmail: email, password: password)
         user = result.user
+
+        // バックエンドユーザーを作成（既に存在する場合は409エラーで無視）
+        await createBackendUser(firebaseUID: result.user.uid)
     }
 
-    // Email/Password Sign Up
+    // MARK: - Email/Password Sign Up
     func signUpWithEmail(email: String, password: String) async throws {
         let result = try await Auth.auth().createUser(withEmail: email, password: password)
         user = result.user
+
+        // バックエンドユーザーを作成
+        await createBackendUser(firebaseUID: result.user.uid)
     }
 
-    // Sign Out
+    // MARK: - Sign Out
     func signOut() throws {
         try Auth.auth().signOut()
         user = nil
+        backendUser = nil
     }
 
-    // Password Reset
+    // MARK: - Password Reset
     func resetPassword(email: String) async throws {
         try await Auth.auth().sendPasswordReset(withEmail: email)
     }
 
-    // Delete Account
+    // MARK: - Delete Account
     func deleteAccount() async throws {
         guard let currentUser = Auth.auth().currentUser else {
             throw AuthenticationError.noUser
         }
+
+        // バックエンドのユーザーを削除
+        if let backendUserId = backendUser?.id {
+            try await APIService.shared.deleteUser(id: backendUserId)
+        }
+
+        // Firebaseのユーザーを削除
         try await currentUser.delete()
+
         user = nil
+        backendUser = nil
     }
 }
 
