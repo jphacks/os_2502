@@ -25,7 +25,9 @@ class GroupManager {
     }
 
     /// グループを作成
-    func createGroup(ownerUserId: String, name: String, groupType: String = "global_temporary") async throws -> APIGroup {
+    func createGroup(ownerUserId: String, name: String, groupType: String = "global_temporary")
+        async throws -> APIGroup
+    {
         isLoading = true
         errorMessage = nil
 

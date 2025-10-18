@@ -23,7 +23,7 @@ class UserAPIService: APIServiceBase {
 
         let body: [String: Any] = [
             "firebase_uid": firebaseUID,
-            "name": name
+            "name": name,
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 

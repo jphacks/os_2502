@@ -35,14 +35,18 @@ class FriendListViewModel {
 
     func sendFriendRequest(to addresseeId: UUID, name: String = "新しいフレンド") {
         let pendingStatus: FriendStatus = .pending
-        let newFriend = Friend(requesterId: currentUserId, addresseeId: addresseeId, status: pendingStatus, name: name, iconName: "person.circle.fill")
+        let newFriend = Friend(
+            requesterId: currentUserId, addresseeId: addresseeId, status: pendingStatus, name: name,
+            iconName: "person.circle.fill")
         friends.append(newFriend)
     }
 
     func addFriend(name: String, iconName: String) {
         let addresseeId = UUID()
         let acceptedStatus: FriendStatus = .accepted
-        let newFriend = Friend(requesterId: currentUserId, addresseeId: addresseeId, status: acceptedStatus, name: name, iconName: iconName)
+        let newFriend = Friend(
+            requesterId: currentUserId, addresseeId: addresseeId, status: acceptedStatus,
+            name: name, iconName: iconName)
         friends.append(newFriend)
     }
 
@@ -59,9 +63,15 @@ class FriendListViewModel {
         let pendingStatus: FriendStatus = .pending
 
         friends = [
-            Friend(requesterId: currentUserId, addresseeId: mockUser1, status: acceptedStatus, name: "山田太郎", iconName: "person.circle.fill"),
-            Friend(requesterId: currentUserId, addresseeId: mockUser2, status: acceptedStatus, name: "佐藤花子", iconName: "person.circle.fill"),
-            Friend(requesterId: mockUser3, addresseeId: currentUserId, status: pendingStatus, name: "鈴木一郎", iconName: "person.circle.fill"),
+            Friend(
+                requesterId: currentUserId, addresseeId: mockUser1, status: acceptedStatus,
+                name: "山田太郎", iconName: "person.circle.fill"),
+            Friend(
+                requesterId: currentUserId, addresseeId: mockUser2, status: acceptedStatus,
+                name: "佐藤花子", iconName: "person.circle.fill"),
+            Friend(
+                requesterId: mockUser3, addresseeId: currentUserId, status: pendingStatus,
+                name: "鈴木一郎", iconName: "person.circle.fill"),
         ]
     }
 }

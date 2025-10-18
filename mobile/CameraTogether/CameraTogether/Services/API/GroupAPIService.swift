@@ -16,7 +16,9 @@ class GroupAPIService: APIServiceBase {
     ///   - limit: 取得件数（デフォルト10）
     ///   - offset: オフセット（デフォルト0）
     /// - Returns: グループの配列
-    func getGroups(ownerUserId: String? = nil, limit: Int = 10, offset: Int = 0) async throws -> [APIGroup] {
+    func getGroups(ownerUserId: String? = nil, limit: Int = 10, offset: Int = 0) async throws
+        -> [APIGroup]
+    {
         // モックデータを使用する場合
         if AppConfig.useMockData {
             let response = try MockDataService.shared.getGroups()
@@ -24,10 +26,11 @@ class GroupAPIService: APIServiceBase {
         }
 
         // 実際のAPI呼び出し
-        var components = URLComponents(url: baseURL.appendingPathComponent("groups"), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("groups"), resolvingAgainstBaseURL: false)!
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "limit", value: "\(limit)"),
-            URLQueryItem(name: "offset", value: "\(offset)")
+            URLQueryItem(name: "offset", value: "\(offset)"),
         ]
         if let ownerUserId = ownerUserId {
             queryItems.append(URLQueryItem(name: "owner_user_id", value: ownerUserId))
@@ -51,7 +54,9 @@ class GroupAPIService: APIServiceBase {
     ///   - name: グループ名
     ///   - groupType: グループタイプ（デフォルト: global_temporary）
     /// - Returns: 作成されたグループ
-    func createGroup(ownerUserId: String, name: String, groupType: String = "global_temporary") async throws -> APIGroup {
+    func createGroup(ownerUserId: String, name: String, groupType: String = "global_temporary")
+        async throws -> APIGroup
+    {
         let url = baseURL.appendingPathComponent("groups")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -60,7 +65,7 @@ class GroupAPIService: APIServiceBase {
         let body: [String: Any] = [
             "owner_user_id": ownerUserId,
             "name": name,
-            "group_type": groupType
+            "group_type": groupType,
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -72,7 +77,9 @@ class GroupAPIService: APIServiceBase {
     ///   - id: グループID
     ///   - userId: ユーザーID（オーナー確認用）
     func deleteGroup(id: String, userId: String) async throws {
-        var components = URLComponents(url: baseURL.appendingPathComponent("groups").appendingPathComponent(id), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("groups").appendingPathComponent(id),
+            resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "user_id", value: userId)]
 
         guard let url = components.url else {

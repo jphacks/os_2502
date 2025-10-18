@@ -30,8 +30,9 @@ class AuthenticationManager {
         } catch {
             // 409エラー（既に存在）の場合は無視
             if let apiError = error as? APIError,
-               case .httpError(let statusCode) = apiError,
-               statusCode == 409 {
+                case .httpError(let statusCode) = apiError,
+                statusCode == 409
+            {
             }
         }
     }

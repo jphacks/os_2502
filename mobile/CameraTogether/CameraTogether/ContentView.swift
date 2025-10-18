@@ -38,7 +38,7 @@ struct ContentView: View {
                             .frame(height: 8)
 
                         NavigationLink {
-                            // CollageGroupMainView()
+                            CollageGroupMainView()
                         } label: {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
@@ -70,7 +70,8 @@ struct ContentView: View {
                         } else {
                             // アクティブなグループ
                             let activeGroups = groupManager.groups.filter {
-                                $0.status == "recruiting" || $0.status == "ready_check" || $0.status == "countdown"
+                                $0.status == "recruiting" || $0.status == "ready_check"
+                                    || $0.status == "countdown"
                             }
 
                             if !activeGroups.isEmpty {
@@ -109,7 +110,9 @@ struct ContentView: View {
                             }
 
                             // 完了したグループ
-                            let completedGroups = groupManager.groups.filter { $0.status == "completed" }
+                            let completedGroups = groupManager.groups.filter {
+                                $0.status == "completed"
+                            }
 
                             if !completedGroups.isEmpty {
                                 VStack(alignment: .leading, spacing: 16) {

@@ -1,6 +1,6 @@
 import AuthenticationServices
-import SwiftUI
 import GoogleSignIn
+import SwiftUI
 
 struct LoginView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -136,7 +136,8 @@ struct LoginView: View {
         } catch {
             // ユーザーがキャンセルした場合はエラーを表示しない
             if let authError = error as? ASAuthorizationError,
-               authError.code == .canceled {
+                authError.code == .canceled
+            {
                 // キャンセルは無視
             } else {
                 errorMessage = error.localizedDescription
@@ -157,7 +158,8 @@ struct LoginView: View {
         } catch {
             // ユーザーがキャンセルした場合はエラーを表示しない
             if let signInError = error as? GIDSignInError,
-               signInError.code == .canceled {
+                signInError.code == .canceled
+            {
                 // キャンセルは無視
             } else {
                 errorMessage = error.localizedDescription
