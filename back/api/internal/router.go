@@ -8,6 +8,7 @@ import (
 	"github.com/jphacks/os_2502/back/api/internal/infrastructure/repository"
 	"github.com/jphacks/os_2502/back/api/internal/usecase"
 	"github.com/jphacks/os_2502/back/api/internal/worker"
+	"github.com/jphacks/os_2502/back/api/middleware"
 )
 
 type Router struct {
@@ -219,6 +220,6 @@ func (r *Router) SetupRoutes() http.Handler {
 	// WebSocket エンドポイント
 	mux.HandleFunc("/api/ws/upload-status", websocketHandler.HandleUploadStatus)
 	mux.HandleFunc("/api/status", websocketHandler.HandleStatus)
-
-	return mux
+  
+	return middleware.CORSMiddleware(mux)
 }
