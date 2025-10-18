@@ -1,0 +1,8 @@
+{
+  "sweetpad.build.xcodeWorkspacePath": "mobile/alarm.xcodeproj/project.xcworkspace",
+  "[swift]": {
+    "editor.defaultFormatter": "sweetpad.sweetpad",
+    "editor.formatOnSave": true
+  },
+  "cSpell.words": ["Zoomable"]
+}
