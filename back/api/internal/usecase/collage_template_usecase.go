@@ -17,15 +17,13 @@ func NewCollageTemplateUseCase(repo collage_template.Repository) *CollageTemplat
 
 // CreateTemplate creates a new collage template
 func (uc *CollageTemplateUseCase) CreateTemplate(ctx context.Context, name, filePath string) (*collage_template.CollageTemplate, error) {
-	// 同名のテンプレートが既に存在するかチェック
-	_, err := uc.repo.FindByName(ctx, name)
-	if err == nil {
+	// 同名のテンプレートが存在するかチェック
+	existing, err := uc.repo.FindByName(ctx, name)
+	if err == nil && existing != nil {
 		return nil, collage_template.ErrTemplateAlreadyExists
 	}
-	if err != collage_template.ErrTemplateNotFound {
-		return nil, err
-	}
 
+	// 新規作成
 	template, err := collage_template.NewCollageTemplate(name, filePath)
 	if err != nil {
 		return nil, err
@@ -38,17 +36,12 @@ func (uc *CollageTemplateUseCase) CreateTemplate(ctx context.Context, name, file
 	return template, nil
 }
 
-// GetTemplate gets a template by ID
+// GetTemplate retrieves a template by ID
 func (uc *CollageTemplateUseCase) GetTemplate(ctx context.Context, templateID uuid.UUID) (*collage_template.CollageTemplate, error) {
 	return uc.repo.FindByID(ctx, templateID)
 }
 
-// GetTemplateByName gets a template by name
-func (uc *CollageTemplateUseCase) GetTemplateByName(ctx context.Context, name string) (*collage_template.CollageTemplate, error) {
-	return uc.repo.FindByName(ctx, name)
-}
-
-// ListTemplates lists all templates
+// ListTemplates retrieves all templates
 func (uc *CollageTemplateUseCase) ListTemplates(ctx context.Context, limit, offset int) ([]*collage_template.CollageTemplate, error) {
 	if limit <= 0 {
 		limit = 20
@@ -61,18 +54,24 @@ func (uc *CollageTemplateUseCase) ListTemplates(ctx context.Context, limit, offs
 
 // UpdateTemplate updates a template
 func (uc *CollageTemplateUseCase) UpdateTemplate(ctx context.Context, templateID uuid.UUID, name, filePath string) (*collage_template.CollageTemplate, error) {
+	// テンプレートを取得
 	template, err := uc.repo.FindByID(ctx, templateID)
 	if err != nil {
 		return nil, err
 	}
+	if template == nil {
+		return nil, collage_template.ErrTemplateNotFound
+	}
 
-	if name != "" {
+	// 名前の更新
+	if name != "" && name != template.Name() {
 		if err := template.UpdateName(name); err != nil {
 			return nil, err
 		}
 	}
 
-	if filePath != "" {
+	// ファイルパスの更新
+	if filePath != "" && filePath != template.FilePath() {
 		if err := template.UpdateFilePath(filePath); err != nil {
 			return nil, err
 		}
@@ -87,5 +86,14 @@ func (uc *CollageTemplateUseCase) UpdateTemplate(ctx context.Context, templateID
 
 // DeleteTemplate deletes a template
 func (uc *CollageTemplateUseCase) DeleteTemplate(ctx context.Context, templateID uuid.UUID) error {
+	// テンプレートが存在するかチェック
+	template, err := uc.repo.FindByID(ctx, templateID)
+	if err != nil {
+		return err
+	}
+	if template == nil {
+		return collage_template.ErrTemplateNotFound
+	}
+
 	return uc.repo.Delete(ctx, templateID)
 }
