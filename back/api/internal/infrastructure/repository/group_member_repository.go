@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/noonyuu/collage/api/internal/domain/group_member"
-	"github.com/noonyuu/collage/api/internal/infrastructure/db"
-	"github.com/noonyuu/collage/api/internal/infrastructure/models"
+	"github.com/jphacks/os_2502/back/api/internal/domain/group_member"
+	"github.com/jphacks/os_2502/back/api/internal/infrastructure/db"
+	"github.com/jphacks/os_2502/back/api/internal/infrastructure/db/models"
 
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"

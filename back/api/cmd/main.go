@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/noonyuu/collage/api/config"
-	"github.com/noonyuu/collage/api/internal"
-	"github.com/noonyuu/collage/api/internal/db"
+	"github.com/jphacks/os_2502/back/api/config"
+	"github.com/jphacks/os_2502/back/api/internal"
+	"github.com/jphacks/os_2502/back/api/internal/db"
 )
 
 func main() {

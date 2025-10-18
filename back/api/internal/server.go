@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/noonyuu/collage/api/internal/db"
+	"github.com/jphacks/os_2502/back/api/internal/db"
 )
 
 // Server represents the main application server

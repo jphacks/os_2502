@@ -7,9 +7,9 @@ import (
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/google/uuid"
-	"github.com/noonyuu/collage/api/internal/domain/collage_result"
-	"github.com/noonyuu/collage/api/internal/infrastructure/db"
-	"github.com/noonyuu/collage/api/internal/infrastructure/models"
+	"github.com/jphacks/os_2502/back/api/internal/domain/collage_result"
+	"github.com/jphacks/os_2502/back/api/internal/infrastructure/db"
+	"github.com/jphacks/os_2502/back/api/internal/infrastructure/db/models"
 )
 
 type CollageResultRepositorySQLBoiler struct {
