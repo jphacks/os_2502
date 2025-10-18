@@ -1,0 +1,76 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* 上揃えに変更 */
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+    gap: 2rem; /* コンテナ間の隙間 */
+    padding: 2rem; /* ボディのパディング */
+}
+.container {
+    text-align: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    flex: 1; /* フレックスアイテムとして均等に広がる */
+    max-width: 550px; /* 最大幅を設定 */
+}
+#template-selector {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    font-size: 1rem;
+    min-width: 300px;
+}
+#svg-container {
+    width: 500px;
+    height: 500px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #ccc;
+}
+#preview-svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+#camera-view {
+    width: 500px;
+    height: 500px;
+    border: 1px solid #ccc;
+    background: #000;
+}
+
+#guide-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 500px;
+    background: transparent;
+    pointer-events: none; /* canvasがクリックイベントを邪魔しないように */
+    z-index: 10;
+}
+
+#collage-result-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 500px;
+    z-index: 20;
+}
+
+#start-camera, #take-photo, #restart {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+#take-photo:disabled {
+    cursor: not-allowed;
+}

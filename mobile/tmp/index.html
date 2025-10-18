@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Collage Template Tester</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Collage Template Tester</h1>違う
+        <select id="template-selector"></select>
+        <div id="svg-container">
+            <svg id="preview-svg"></svg>
+        </div>
+    </div>
+    <div class="container">
+        <h1>Camera Test</h1>
+        <div style="position: relative; width: 500px; height: 500px; margin-bottom: 1rem;">
+            <video id="camera-view" autoplay playsinline></video>
+            <canvas id="guide-canvas"></canvas>
+            <div id="collage-result-container"></div>
+        </div>
+        <button id="start-camera">Start Camera</button>
+        <button id="take-photo" disabled>Take Picture</button>
+        <button id="restart" disabled>Restart</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
