@@ -8,15 +8,15 @@ import (
 
 type GroupPartAssignment struct {
 	assignmentID uuid.UUID
-	groupID      uuid.UUID
+	groupID      string
 	userID       uuid.UUID
 	partID       uuid.UUID
 	collageDay   time.Time
 	assignedAt   time.Time
 }
 
-func NewGroupPartAssignment(groupID, userID, partID uuid.UUID, collageDay time.Time) (*GroupPartAssignment, error) {
-	if groupID == uuid.Nil {
+func NewGroupPartAssignment(groupID string, userID, partID uuid.UUID, collageDay time.Time) (*GroupPartAssignment, error) {
+	if groupID == "" {
 		return nil, ErrInvalidGroupID
 	}
 	if userID == uuid.Nil {
@@ -39,11 +39,11 @@ func NewGroupPartAssignment(groupID, userID, partID uuid.UUID, collageDay time.T
 	}, nil
 }
 
-func Reconstruct(assignmentID, groupID, userID, partID uuid.UUID, collageDay, assignedAt time.Time) (*GroupPartAssignment, error) {
+func Reconstruct(assignmentID uuid.UUID, groupID string, userID, partID uuid.UUID, collageDay, assignedAt time.Time) (*GroupPartAssignment, error) {
 	if assignmentID == uuid.Nil {
 		return nil, ErrInvalidAssignmentID
 	}
-	if groupID == uuid.Nil {
+	if groupID == "" {
 		return nil, ErrInvalidGroupID
 	}
 	if userID == uuid.Nil {
@@ -68,7 +68,7 @@ func (gpa *GroupPartAssignment) AssignmentID() uuid.UUID {
 	return gpa.assignmentID
 }
 
-func (gpa *GroupPartAssignment) GroupID() uuid.UUID {
+func (gpa *GroupPartAssignment) GroupID() string {
 	return gpa.groupID
 }
 

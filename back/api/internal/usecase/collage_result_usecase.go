@@ -17,6 +17,7 @@ func NewCollageResultUseCase(repo collage_result.Repository) *CollageResultUseCa
 
 // CreateResult creates a new collage result
 func (uc *CollageResultUseCase) CreateResult(ctx context.Context, templateID uuid.UUID, groupID, fileURL string, targetUserNumber int) (*collage_result.CollageResult, error) {
+	// 新規作成
 	result, err := collage_result.NewCollageResult(templateID, groupID, fileURL, targetUserNumber)
 	if err != nil {
 		return nil, err
@@ -29,12 +30,12 @@ func (uc *CollageResultUseCase) CreateResult(ctx context.Context, templateID uui
 	return result, nil
 }
 
-// GetResult gets a result by ID
+// GetResult retrieves a result by ID
 func (uc *CollageResultUseCase) GetResult(ctx context.Context, resultID uuid.UUID) (*collage_result.CollageResult, error) {
 	return uc.repo.FindByID(ctx, resultID)
 }
 
-// GetResultsByGroup gets all results by group ID
+// GetResultsByGroup retrieves all results by group ID
 func (uc *CollageResultUseCase) GetResultsByGroup(ctx context.Context, groupID string, limit, offset int) ([]*collage_result.CollageResult, error) {
 	if limit <= 0 {
 		limit = 20
@@ -45,26 +46,33 @@ func (uc *CollageResultUseCase) GetResultsByGroup(ctx context.Context, groupID s
 	return uc.repo.FindByGroupID(ctx, groupID, limit, offset)
 }
 
-// GetUnnotifiedResults gets all unnotified results
-func (uc *CollageResultUseCase) GetUnnotifiedResults(ctx context.Context, limit int) ([]*collage_result.CollageResult, error) {
-	if limit <= 0 {
-		limit = 100
-	}
-	return uc.repo.FindUnnotified(ctx, limit)
-}
-
 // MarkAsNotified marks a result as notified
 func (uc *CollageResultUseCase) MarkAsNotified(ctx context.Context, resultID uuid.UUID) error {
+	// 結果を取得
 	result, err := uc.repo.FindByID(ctx, resultID)
 	if err != nil {
 		return err
 	}
+	if result == nil {
+		return collage_result.ErrResultNotFound
+	}
 
+	// 通知済みにする
 	result.MarkAsNotified()
+
 	return uc.repo.Update(ctx, result)
 }
 
 // DeleteResult deletes a result
 func (uc *CollageResultUseCase) DeleteResult(ctx context.Context, resultID uuid.UUID) error {
+	// 結果が存在するかチェック
+	result, err := uc.repo.FindByID(ctx, resultID)
+	if err != nil {
+		return err
+	}
+	if result == nil {
+		return collage_result.ErrResultNotFound
+	}
+
 	return uc.repo.Delete(ctx, resultID)
 }

@@ -15,48 +15,41 @@ func NewDeviceTokenUseCase(repo device_token.Repository) *DeviceTokenUseCase {
 	return &DeviceTokenUseCase{repo: repo}
 }
 
-// RegisterDeviceToken registers a new device token or updates if it already exists
-func (uc *DeviceTokenUseCase) RegisterDeviceToken(
-	ctx context.Context,
-	userID uuid.UUID,
-	tokenString string,
-	deviceType device_token.DeviceType,
-	deviceName *string,
-) (*device_token.DeviceToken, error) {
-	// 既存のトークンを検索
-	existingToken, err := uc.repo.FindByToken(ctx, tokenString)
-	if err == nil && existingToken != nil {
-		// トークンが既に存在する場合、アクティブ化して最終使用日時を更新
-		existingToken.Activate()
-		existingToken.UpdateLastUsedAt()
-		if deviceName != nil {
-			existingToken.UpdateDeviceName(deviceName)
+// RegisterDeviceToken registers or updates a device token
+func (uc *DeviceTokenUseCase) RegisterDeviceToken(ctx context.Context, userID uuid.UUID, deviceTokenStr string, deviceType device_token.DeviceType, deviceName *string) (*device_token.DeviceToken, error) {
+	// 既存のトークンをチェック
+	existing, err := uc.repo.FindByToken(ctx, deviceTokenStr)
+	if err == nil && existing != nil {
+		// 既に存在する場合は、最終使用時刻を更新してアクティブにする
+		existing.UpdateLastUsedAt()
+		if !existing.IsActive() {
+			existing.Activate()
 		}
-		if err := uc.repo.Update(ctx, existingToken); err != nil {
+		if err := uc.repo.Update(ctx, existing); err != nil {
 			return nil, err
 		}
-		return existingToken, nil
+		return existing, nil
 	}
 
-	// 新規トークンを作成
-	newToken, err := device_token.NewDeviceToken(userID, tokenString, deviceType, deviceName)
+	// 新規作成
+	dt, err := device_token.NewDeviceToken(userID, deviceTokenStr, deviceType, deviceName)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := uc.repo.Create(ctx, newToken); err != nil {
+	if err := uc.repo.Create(ctx, dt); err != nil {
 		return nil, err
 	}
 
-	return newToken, nil
+	return dt, nil
 }
 
-// GetDeviceToken gets a device token by ID
+// GetDeviceToken retrieves a device token by ID
 func (uc *DeviceTokenUseCase) GetDeviceToken(ctx context.Context, id uuid.UUID) (*device_token.DeviceToken, error) {
 	return uc.repo.FindByID(ctx, id)
 }
 
-// GetUserDeviceTokens gets all device tokens for a user
+// GetUserDeviceTokens retrieves all device tokens for a user
 func (uc *DeviceTokenUseCase) GetUserDeviceTokens(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*device_token.DeviceToken, error) {
 	if limit <= 0 {
 		limit = 20
@@ -67,57 +60,44 @@ func (uc *DeviceTokenUseCase) GetUserDeviceTokens(ctx context.Context, userID uu
 	return uc.repo.FindByUserID(ctx, userID, limit, offset)
 }
 
-// GetActiveDeviceTokens gets all active device tokens for a user
-func (uc *DeviceTokenUseCase) GetActiveDeviceTokens(ctx context.Context, userID uuid.UUID) ([]*device_token.DeviceToken, error) {
-	return uc.repo.FindActiveByUserID(ctx, userID)
-}
-
 // DeactivateDeviceToken deactivates a device token
-func (uc *DeviceTokenUseCase) DeactivateDeviceToken(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
-	token, err := uc.repo.FindByID(ctx, id)
+func (uc *DeviceTokenUseCase) DeactivateDeviceToken(ctx context.Context, id, userID uuid.UUID) error {
+	// デバイストークンを取得
+	dt, err := uc.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
-
-	// トークンの所有者であることを確認
-	if token.UserID() != userID {
+	if dt == nil {
 		return device_token.ErrDeviceTokenNotFound
 	}
 
-	token.Deactivate()
-	return uc.repo.Update(ctx, token)
+	// ユーザー本人のトークンかチェック
+	if dt.UserID() != userID {
+		return device_token.ErrDeviceTokenNotFound
+	}
+
+	// 無効化
+	dt.Deactivate()
+
+	return uc.repo.Update(ctx, dt)
 }
 
 // DeleteDeviceToken deletes a device token
-func (uc *DeviceTokenUseCase) DeleteDeviceToken(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
-	token, err := uc.repo.FindByID(ctx, id)
+func (uc *DeviceTokenUseCase) DeleteDeviceToken(ctx context.Context, id, userID uuid.UUID) error {
+	// デバイストークンを取得
+	dt, err := uc.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
-
-	// トークンの所有者であることを確認
-	if token.UserID() != userID {
+	if dt == nil {
 		return device_token.ErrDeviceTokenNotFound
 	}
 
+	// ユーザー本人のトークンかチェック
+	if dt.UserID() != userID {
+		return device_token.ErrDeviceTokenNotFound
+	}
+
+	// 削除
 	return uc.repo.Delete(ctx, id)
-}
-
-// UpdateLastUsed updates the last used timestamp of a device token
-func (uc *DeviceTokenUseCase) UpdateLastUsed(ctx context.Context, tokenString string) error {
-	token, err := uc.repo.FindByToken(ctx, tokenString)
-	if err != nil {
-		return err
-	}
-
-	token.UpdateLastUsedAt()
-	return uc.repo.Update(ctx, token)
-}
-
-// CleanupOldTokens deactivates tokens that haven't been used for a specified number of days
-func (uc *DeviceTokenUseCase) CleanupOldTokens(ctx context.Context, days int) (int, error) {
-	if days <= 0 {
-		days = 90 // デフォルト90日
-	}
-	return uc.repo.DeactivateOldTokens(ctx, days)
 }

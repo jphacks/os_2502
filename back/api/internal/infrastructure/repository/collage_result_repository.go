@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jphacks/os_2502/back/api/internal/domain/collage_result"
 	"github.com/jphacks/os_2502/back/api/internal/infrastructure/db"
-	"github.com/jphacks/os_2502/back/api/internal/infrastructure/db/models"
+	"github.com/jphacks/os_2502/back/api/internal/infrastructure/models"
 )
 
 type CollageResultRepositorySQLBoiler struct {

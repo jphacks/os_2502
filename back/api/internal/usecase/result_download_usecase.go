@@ -17,13 +17,14 @@ func NewResultDownloadUseCase(repo result_download.Repository) *ResultDownloadUs
 
 // RecordDownload records a download
 func (uc *ResultDownloadUseCase) RecordDownload(ctx context.Context, resultID, userID uuid.UUID) (*result_download.ResultDownload, error) {
-	// 既にダウンロード履歴があるかチェック
+	// 既に記録されているかチェック
 	existing, err := uc.repo.FindByResultAndUser(ctx, resultID, userID)
 	if err == nil && existing != nil {
-		// 既に存在する場合はそのまま返す
+		// 既に記録されている場合はそれを返す
 		return existing, nil
 	}
 
+	// 新規作成
 	download, err := result_download.NewResultDownload(resultID, userID)
 	if err != nil {
 		return nil, err
@@ -36,7 +37,7 @@ func (uc *ResultDownloadUseCase) RecordDownload(ctx context.Context, resultID, u
 	return download, nil
 }
 
-// GetDownloadsByResult gets all downloads by result ID
+// GetDownloadsByResult retrieves all downloads by result ID
 func (uc *ResultDownloadUseCase) GetDownloadsByResult(ctx context.Context, resultID uuid.UUID, limit, offset int) ([]*result_download.ResultDownload, error) {
 	if limit <= 0 {
 		limit = 50
@@ -47,30 +48,7 @@ func (uc *ResultDownloadUseCase) GetDownloadsByResult(ctx context.Context, resul
 	return uc.repo.FindByResultID(ctx, resultID, limit, offset)
 }
 
-// GetDownloadsByUser gets all downloads by user ID
-func (uc *ResultDownloadUseCase) GetDownloadsByUser(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*result_download.ResultDownload, error) {
-	if limit <= 0 {
-		limit = 50
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	return uc.repo.FindByUserID(ctx, userID, limit, offset)
-}
-
-// GetDownloadCount gets download count by result ID
+// GetDownloadCount retrieves the download count for a result
 func (uc *ResultDownloadUseCase) GetDownloadCount(ctx context.Context, resultID uuid.UUID) (int, error) {
 	return uc.repo.CountByResultID(ctx, resultID)
-}
-
-// CheckDownloaded checks if a user has downloaded a result
-func (uc *ResultDownloadUseCase) CheckDownloaded(ctx context.Context, resultID, userID uuid.UUID) (bool, error) {
-	_, err := uc.repo.FindByResultAndUser(ctx, resultID, userID)
-	if err == result_download.ErrDownloadNotFound {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }

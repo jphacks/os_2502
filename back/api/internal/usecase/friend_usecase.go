@@ -3,119 +3,128 @@ package usecase
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/jphacks/os_2502/back/api/internal/domain/friend"
-	"github.com/jphacks/os_2502/back/api/internal/domain/user"
 )
 
 type FriendUseCase struct {
-	friendRepo friend.Repository
-	userRepo   user.Repository
+	repo friend.Repository
 }
 
-func NewFriendUseCase(friendRepo friend.Repository, userRepo user.Repository) *FriendUseCase {
-	return &FriendUseCase{
-		friendRepo: friendRepo,
-		userRepo:   userRepo,
-	}
+func NewFriendUseCase(repo friend.Repository) *FriendUseCase {
+	return &FriendUseCase{repo: repo}
 }
 
 // SendFriendRequest sends a friend request
 func (uc *FriendUseCase) SendFriendRequest(ctx context.Context, requesterID, addresseeID string) (*friend.Friend, error) {
-	// 申請先のユーザーが存在するかチェック
-	addresseeUUID, err := uuid.Parse(addresseeID)
-	if err != nil {
-		return nil, user.ErrUserNotFound
-	}
-	if _, err := uc.userRepo.FindByID(ctx, addresseeUUID); err != nil {
-		return nil, err
-	}
-
-	// 既にフレンド関係があるかチェック
-	isFriend, err := uc.friendRepo.CheckFriendship(ctx, requesterID, addresseeID)
-	if err != nil {
-		return nil, err
-	}
-	if isFriend {
-		return nil, friend.ErrAlreadyFriends
+	// 既存のフレンドリクエストまたはフレンド関係をチェック
+	existing, err := uc.repo.FindByRequesterAndAddressee(ctx, requesterID, addresseeID)
+	if err == nil && existing != nil {
+		if existing.IsAccepted() {
+			return nil, friend.ErrAlreadyFriends
+		}
+		if existing.IsPending() {
+			return nil, friend.ErrFriendRequestAlreadyExists
+		}
 	}
 
-	// 既にリクエストがあるかチェック（双方向）
-	_, err = uc.friendRepo.FindByRequesterAndAddressee(ctx, requesterID, addresseeID)
-	if err == nil {
-		return nil, friend.ErrFriendRequestAlreadyExists
-	}
-	_, err = uc.friendRepo.FindByRequesterAndAddressee(ctx, addresseeID, requesterID)
-	if err == nil {
-		return nil, friend.ErrFriendRequestAlreadyExists
+	// 逆方向のリクエストもチェック
+	reverse, err := uc.repo.FindByRequesterAndAddressee(ctx, addresseeID, requesterID)
+	if err == nil && reverse != nil {
+		if reverse.IsAccepted() {
+			return nil, friend.ErrAlreadyFriends
+		}
+		if reverse.IsPending() {
+			return nil, friend.ErrFriendRequestAlreadyExists
+		}
 	}
 
 	// 新しいフレンドリクエストを作成
-	newFriend, err := friend.NewFriend(requesterID, addresseeID)
+	f, err := friend.NewFriend(requesterID, addresseeID)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := uc.friendRepo.Create(ctx, newFriend); err != nil {
+	if err := uc.repo.Create(ctx, f); err != nil {
 		return nil, err
 	}
 
-	return newFriend, nil
+	return f, nil
 }
 
 // AcceptFriendRequest accepts a friend request
 func (uc *FriendUseCase) AcceptFriendRequest(ctx context.Context, requestID, userID string) (*friend.Friend, error) {
-	// リクエストを取得
-	friendRequest, err := uc.friendRepo.FindByID(ctx, requestID)
+	// フレンドリクエストを取得
+	f, err := uc.repo.FindByID(ctx, requestID)
 	if err != nil {
 		return nil, err
 	}
+	if f == nil {
+		return nil, friend.ErrFriendRequestNotFound
+	}
 
-	// 申請相手であることを確認
-	if friendRequest.AddresseeID() != userID {
+	// 受信者本人かチェック
+	if f.AddresseeID() != userID {
 		return nil, friend.ErrFriendRequestNotFound
 	}
 
 	// 承認
-	if err := friendRequest.Accept(); err != nil {
+	if err := f.Accept(); err != nil {
 		return nil, err
 	}
 
-	// 更新
-	if err := uc.friendRepo.Update(ctx, friendRequest); err != nil {
+	if err := uc.repo.Update(ctx, f); err != nil {
 		return nil, err
 	}
 
-	return friendRequest, nil
+	return f, nil
 }
 
 // RejectFriendRequest rejects a friend request
 func (uc *FriendUseCase) RejectFriendRequest(ctx context.Context, requestID, userID string) error {
-	// リクエストを取得
-	friendRequest, err := uc.friendRepo.FindByID(ctx, requestID)
+	// フレンドリクエストを取得
+	f, err := uc.repo.FindByID(ctx, requestID)
 	if err != nil {
 		return err
 	}
+	if f == nil {
+		return friend.ErrFriendRequestNotFound
+	}
 
-	// 申請相手であることを確認
-	if friendRequest.AddresseeID() != userID {
+	// 受信者本人かチェック
+	if f.AddresseeID() != userID {
 		return friend.ErrFriendRequestNotFound
 	}
 
 	// 拒否
-	if err := friendRequest.Reject(); err != nil {
+	if err := f.Reject(); err != nil {
 		return err
 	}
 
-	// 更新
-	if err := uc.friendRepo.Update(ctx, friendRequest); err != nil {
-		return err
-	}
-
-	return nil
+	// 拒否されたリクエストは削除
+	return uc.repo.Delete(ctx, requestID)
 }
 
-// GetFriends gets all accepted friends for a user
+// CancelFriendRequest cancels a friend request
+func (uc *FriendUseCase) CancelFriendRequest(ctx context.Context, requestID, userID string) error {
+	// フレンドリクエストを取得
+	f, err := uc.repo.FindByID(ctx, requestID)
+	if err != nil {
+		return err
+	}
+	if f == nil {
+		return friend.ErrFriendRequestNotFound
+	}
+
+	// 送信者本人かチェック
+	if f.RequesterID() != userID {
+		return friend.ErrFriendRequestNotFound
+	}
+
+	// キャンセル（削除）
+	return uc.repo.Delete(ctx, requestID)
+}
+
+// GetFriends retrieves all friends for a user
 func (uc *FriendUseCase) GetFriends(ctx context.Context, userID string, limit, offset int) ([]*friend.Friend, error) {
 	if limit <= 0 {
 		limit = 20
@@ -123,10 +132,10 @@ func (uc *FriendUseCase) GetFriends(ctx context.Context, userID string, limit, o
 	if offset < 0 {
 		offset = 0
 	}
-	return uc.friendRepo.FindAcceptedFriends(ctx, userID, limit, offset)
+	return uc.repo.FindAcceptedFriends(ctx, userID, limit, offset)
 }
 
-// GetPendingReceivedRequests gets all pending received friend requests
+// GetPendingReceivedRequests retrieves pending received friend requests
 func (uc *FriendUseCase) GetPendingReceivedRequests(ctx context.Context, userID string, limit, offset int) ([]*friend.Friend, error) {
 	if limit <= 0 {
 		limit = 20
@@ -134,10 +143,10 @@ func (uc *FriendUseCase) GetPendingReceivedRequests(ctx context.Context, userID 
 	if offset < 0 {
 		offset = 0
 	}
-	return uc.friendRepo.FindPendingReceivedRequests(ctx, userID, limit, offset)
+	return uc.repo.FindPendingReceivedRequests(ctx, userID, limit, offset)
 }
 
-// GetPendingSentRequests gets all pending sent friend requests
+// GetPendingSentRequests retrieves pending sent friend requests
 func (uc *FriendUseCase) GetPendingSentRequests(ctx context.Context, userID string, limit, offset int) ([]*friend.Friend, error) {
 	if limit <= 0 {
 		limit = 20
@@ -145,58 +154,21 @@ func (uc *FriendUseCase) GetPendingSentRequests(ctx context.Context, userID stri
 	if offset < 0 {
 		offset = 0
 	}
-	return uc.friendRepo.FindPendingSentRequests(ctx, userID, limit, offset)
+	return uc.repo.FindPendingSentRequests(ctx, userID, limit, offset)
 }
 
-// RemoveFriend removes a friendship
-func (uc *FriendUseCase) RemoveFriend(ctx context.Context, userID1, userID2 string) error {
+// RemoveFriend removes a friend
+func (uc *FriendUseCase) RemoveFriend(ctx context.Context, userID, friendUserID string) error {
 	// フレンド関係を検索（双方向）
-	friendRequest, err := uc.friendRepo.FindByRequesterAndAddressee(ctx, userID1, userID2)
-	if err != nil {
-		// 逆方向も試す
-		friendRequest, err = uc.friendRepo.FindByRequesterAndAddressee(ctx, userID2, userID1)
-		if err != nil {
+	f, err := uc.repo.FindByRequesterAndAddressee(ctx, userID, friendUserID)
+	if err != nil || f == nil {
+		// 逆方向も確認
+		f, err = uc.repo.FindByRequesterAndAddressee(ctx, friendUserID, userID)
+		if err != nil || f == nil {
 			return friend.ErrFriendRequestNotFound
 		}
 	}
 
-	// acceptedステータスでない場合はエラー
-	if !friendRequest.IsAccepted() {
-		return friend.ErrFriendRequestNotFound
-	}
-
-	// 削除
-	return uc.friendRepo.Delete(ctx, friendRequest.ID())
-}
-
-// CancelFriendRequest cancels a sent friend request
-func (uc *FriendUseCase) CancelFriendRequest(ctx context.Context, requestID, userID string) error {
-	// リクエストを取得
-	friendRequest, err := uc.friendRepo.FindByID(ctx, requestID)
-	if err != nil {
-		return err
-	}
-
-	// 申請者であることを確認
-	if friendRequest.RequesterID() != userID {
-		return friend.ErrFriendRequestNotFound
-	}
-
-	// pendingステータスでない場合はエラー
-	if !friendRequest.IsPending() {
-		return friend.ErrCannotAcceptNonPending
-	}
-
-	// 削除
-	return uc.friendRepo.Delete(ctx, friendRequest.ID())
-}
-
-// CheckFriendship checks if two users are friends
-func (uc *FriendUseCase) CheckFriendship(ctx context.Context, userID1, userID2 string) (bool, error) {
-	return uc.friendRepo.CheckFriendship(ctx, userID1, userID2)
-}
-
-// CleanupExpiredRequests cleans up expired pending requests
-func (uc *FriendUseCase) CleanupExpiredRequests(ctx context.Context) (int, error) {
-	return uc.friendRepo.DeleteExpiredPendingRequests(ctx)
+	// フレンド関係を削除
+	return uc.repo.Delete(ctx, f.ID())
 }

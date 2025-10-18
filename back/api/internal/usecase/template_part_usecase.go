@@ -15,19 +15,28 @@ func NewTemplatePartUseCase(repo template_part.Repository) *TemplatePartUseCase 
 	return &TemplatePartUseCase{repo: repo}
 }
 
-func (uc *TemplatePartUseCase) CreateTemplatePart(ctx context.Context, templateID uuid.UUID, partNumber, positionX, positionY, width, height int) (*template_part.TemplatePart, error) {
-	// テンプレートパーツを作成
-	part, err := template_part.NewTemplatePart(templateID, partNumber, positionX, positionY, width, height)
+func (uc *TemplatePartUseCase) CreateTemplatePart(
+	ctx context.Context,
+	templateID uuid.UUID,
+	partNumber, positionX, positionY, width, height int,
+	partName, description *string,
+) (*template_part.TemplatePart, error) {
+	// 同じテンプレートIDとパーツ番号の組み合わせが既に存在するかチェック
+	existing, err := uc.repo.FindByTemplateIDAndPartNumber(ctx, templateID, partNumber)
+	if err == nil && existing != nil {
+		return nil, template_part.ErrDuplicatePartNumber
+	}
+
+	tp, err := template_part.NewTemplatePart(templateID, partNumber, positionX, positionY, width, height, partName, description)
 	if err != nil {
 		return nil, err
 	}
 
-	// リポジトリに保存
-	if err := uc.repo.Save(ctx, part); err != nil {
+	if err := uc.repo.Create(ctx, tp); err != nil {
 		return nil, err
 	}
 
-	return part, nil
+	return tp, nil
 }
 
 func (uc *TemplatePartUseCase) GetTemplatePartByID(ctx context.Context, partID uuid.UUID) (*template_part.TemplatePart, error) {
@@ -38,70 +47,77 @@ func (uc *TemplatePartUseCase) GetTemplatePartsByTemplateID(ctx context.Context,
 	return uc.repo.FindByTemplateID(ctx, templateID)
 }
 
-func (uc *TemplatePartUseCase) UpdatePartName(ctx context.Context, partID uuid.UUID, name string) (*template_part.TemplatePart, error) {
-	part, err := uc.repo.FindByID(ctx, partID)
-	if err != nil {
-		return nil, err
-	}
-
-	part.SetPartName(name)
-
-	if err := uc.repo.Save(ctx, part); err != nil {
-		return nil, err
-	}
-
-	return part, nil
+func (uc *TemplatePartUseCase) GetTemplatePartByTemplateIDAndPartNumber(ctx context.Context, templateID uuid.UUID, partNumber int) (*template_part.TemplatePart, error) {
+	return uc.repo.FindByTemplateIDAndPartNumber(ctx, templateID, partNumber)
 }
 
-func (uc *TemplatePartUseCase) UpdatePartDescription(ctx context.Context, partID uuid.UUID, description string) (*template_part.TemplatePart, error) {
-	part, err := uc.repo.FindByID(ctx, partID)
+func (uc *TemplatePartUseCase) UpdateTemplatePartPosition(
+	ctx context.Context,
+	partID uuid.UUID,
+	positionX, positionY, width, height int,
+) (*template_part.TemplatePart, error) {
+	tp, err := uc.repo.FindByID(ctx, partID)
 	if err != nil {
 		return nil, err
 	}
 
-	part.SetDescription(description)
-
-	if err := uc.repo.Save(ctx, part); err != nil {
+	if err := tp.UpdatePosition(positionX, positionY, width, height); err != nil {
 		return nil, err
 	}
 
-	return part, nil
+	if err := uc.repo.Update(ctx, tp); err != nil {
+		return nil, err
+	}
+
+	return tp, nil
 }
 
-func (uc *TemplatePartUseCase) UpdatePartPosition(ctx context.Context, partID uuid.UUID, x, y int) (*template_part.TemplatePart, error) {
-	part, err := uc.repo.FindByID(ctx, partID)
+func (uc *TemplatePartUseCase) UpdateTemplatePartName(
+	ctx context.Context,
+	partID uuid.UUID,
+	partName *string,
+) (*template_part.TemplatePart, error) {
+	tp, err := uc.repo.FindByID(ctx, partID)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := part.UpdatePosition(x, y); err != nil {
+	tp.UpdatePartName(partName)
+
+	if err := uc.repo.Update(ctx, tp); err != nil {
 		return nil, err
 	}
 
-	if err := uc.repo.Save(ctx, part); err != nil {
-		return nil, err
-	}
-
-	return part, nil
+	return tp, nil
 }
 
-func (uc *TemplatePartUseCase) UpdatePartDimensions(ctx context.Context, partID uuid.UUID, width, height int) (*template_part.TemplatePart, error) {
-	part, err := uc.repo.FindByID(ctx, partID)
+func (uc *TemplatePartUseCase) UpdateTemplatePartDescription(
+	ctx context.Context,
+	partID uuid.UUID,
+	description *string,
+) (*template_part.TemplatePart, error) {
+	tp, err := uc.repo.FindByID(ctx, partID)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := part.UpdateDimensions(width, height); err != nil {
+	tp.UpdateDescription(description)
+
+	if err := uc.repo.Update(ctx, tp); err != nil {
 		return nil, err
 	}
 
-	if err := uc.repo.Save(ctx, part); err != nil {
-		return nil, err
-	}
-
-	return part, nil
+	return tp, nil
 }
 
 func (uc *TemplatePartUseCase) DeleteTemplatePart(ctx context.Context, partID uuid.UUID) error {
 	return uc.repo.Delete(ctx, partID)
+}
+
+func (uc *TemplatePartUseCase) DeleteTemplatePartsByTemplateID(ctx context.Context, templateID uuid.UUID) error {
+	return uc.repo.DeleteByTemplateID(ctx, templateID)
+}
+
+func (uc *TemplatePartUseCase) ListTemplateParts(ctx context.Context, limit, offset int) ([]*template_part.TemplatePart, error) {
+	return uc.repo.List(ctx, limit, offset)
 }
