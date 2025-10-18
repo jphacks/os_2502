@@ -5,7 +5,7 @@ import Foundation
 @Observable
 class AuthenticationManager {
     var user: FirebaseAuth.User?
-    var backendUser: APIService.User?
+    var backendUser: User?
     var isAuthenticated: Bool {
         user != nil
     }
@@ -22,7 +22,7 @@ class AuthenticationManager {
     private func createBackendUser(firebaseUID: String) async {
         do {
             let displayName = user?.displayName ?? "ユーザー"
-            let newUser = try await APIService.shared.createUser(
+            let newUser = try await UserAPIService.shared.createUser(
                 firebaseUID: firebaseUID,
                 name: displayName
             )
@@ -101,7 +101,7 @@ class AuthenticationManager {
 
         // バックエンドのユーザーを削除
         if let backendUserId = backendUser?.id {
-            try await APIService.shared.deleteUser(id: backendUserId)
+            try await UserAPIService.shared.deleteUser(id: backendUserId)
         }
 
         // Firebaseのユーザーを削除
