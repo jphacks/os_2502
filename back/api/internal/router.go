@@ -3,6 +3,8 @@ package internal
 import (
 	"database/sql"
 	"net/http"
+
+	"github.com/jphacks/os_2502/back/api/middleware"
 )
 
 type Router struct {
@@ -17,5 +19,5 @@ func NewRouter(db *sql.DB) *Router {
 func (r *Router) SetupRoutes() http.Handler {
 	mux := http.NewServeMux()
 
-	return mux
+	return middleware.CORSMiddleware(mux)
 }
