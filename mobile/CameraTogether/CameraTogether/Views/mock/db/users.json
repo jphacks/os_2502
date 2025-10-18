@@ -1,0 +1,23 @@
+{
+  "users": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440010",
+      "firebase_uid": "firebase_test_uid_001",
+      "name": "山田太郎",
+      "username": "yamada_taro",
+      "created_at": "2025-10-12T17:15:47Z",
+      "updated_at": "2025-10-12T17:15:47Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440011",
+      "firebase_uid": "firebase_test_uid_002",
+      "name": "鈴木花子",
+      "username": "suzuki_hanako",
+      "created_at": "2025-10-13T10:20:30Z",
+      "updated_at": "2025-10-13T10:20:30Z"
+    }
+  ],
+  "limit": 10,
+  "offset": 0,
+  "count": 2
+}
