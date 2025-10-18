@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/volatiletech/sqlboiler/v4/drivers"
-	"github.com/volatiletech/strmangle"
+	"github.com/aarondl/sqlboiler/v4/drivers"
+	"github.com/aarondl/strmangle"
 )
 
 // buildUpsertQueryMySQL builds a SQL statement string using the upsertData provided.

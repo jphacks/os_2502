@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/volatiletech/randomize"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries"
-	"github.com/volatiletech/strmangle"
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries"
+	"github.com/aarondl/strmangle"
 )
 
 var (

@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"regexp"
 
-	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/boil"
 )
 
 var dbNameRand *rand.Rand
