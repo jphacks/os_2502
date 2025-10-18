@@ -6,13 +6,33 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		72055A582EA376020068DC47 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 72055A572EA376020068DC47 /* GoogleSignIn */; };
+		72055A5A2EA376020068DC47 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 72055A592EA376020068DC47 /* GoogleSignInSwift */; };
+		72055A5D2EA3761D0068DC47 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 72055A5C2EA3761D0068DC47 /* FirebaseAuth */; };
+		72055A5F2EA3761D0068DC47 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 72055A5E2EA3761D0068DC47 /* FirebaseCore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		7281D7972EA3254A003B7437 /* CameraTogether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraTogether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		720559272EA363550068DC47 /* Exceptions for "CameraTogether" folder in "CameraTogether" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7281D7962EA3254A003B7437 /* CameraTogether */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7281D7992EA3254A003B7437 /* CameraTogether */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				720559272EA363550068DC47 /* Exceptions for "CameraTogether" folder in "CameraTogether" target */,
+			);
 			path = CameraTogether;
 			sourceTree = "<group>";
 		};
@@ -23,6 +43,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72055A582EA376020068DC47 /* GoogleSignIn in Frameworks */,
+				72055A5D2EA3761D0068DC47 /* FirebaseAuth in Frameworks */,
+				72055A5F2EA3761D0068DC47 /* FirebaseCore in Frameworks */,
+				72055A5A2EA376020068DC47 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +89,10 @@
 			);
 			name = CameraTogether;
 			packageProductDependencies = (
+				72055A572EA376020068DC47 /* GoogleSignIn */,
+				72055A592EA376020068DC47 /* GoogleSignInSwift */,
+				72055A5C2EA3761D0068DC47 /* FirebaseAuth */,
+				72055A5E2EA3761D0068DC47 /* FirebaseCore */,
 			);
 			productName = CameraTogether;
 			productReference = 7281D7972EA3254A003B7437 /* CameraTogether.app */;
@@ -94,6 +122,10 @@
 			);
 			mainGroup = 7281D78E2EA3254A003B7437;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				72055A562EA376020068DC47 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				72055A5B2EA3761D0068DC47 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7281D7982EA3254A003B7437 /* Products */;
 			projectDirPath = "";
@@ -129,6 +161,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				API_ENDPOINT = "http://localhost:8443";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -193,6 +226,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				API_ENDPOINT = "";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -251,14 +285,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CameraTogether/CameraTogether.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SDCTHQR6AD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = CameraTogether/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -283,14 +318,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CameraTogether/CameraTogether.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SDCTHQR6AD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = CameraTogether/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -332,6 +368,48 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		72055A562EA376020068DC47 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+		72055A5B2EA3761D0068DC47 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		72055A572EA376020068DC47 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72055A562EA376020068DC47 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		72055A592EA376020068DC47 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72055A562EA376020068DC47 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		72055A5C2EA3761D0068DC47 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72055A5B2EA3761D0068DC47 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		72055A5E2EA3761D0068DC47 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72055A5B2EA3761D0068DC47 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7281D78F2EA3254A003B7437 /* Project object */;
 }

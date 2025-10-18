@@ -5,9 +5,14 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) var colorScheme
     @State private var isShowingSettings = false
+    @State private var authManager = AuthenticationManager()
 
     var body: some View {
-        mainContent
+        if !authManager.isAuthenticated {
+            LoginView(authManager: authManager)
+        } else {
+            mainContent
+        }
     }
 
     private var mainContent: some View {
@@ -32,7 +37,7 @@ struct ContentView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(Color.clear, for: .navigationBar)
             .sheet(isPresented: $isShowingSettings) {
-                SettingsSheetView()
+                SettingsSheetView(authManager: authManager)
             }
         }
     }
