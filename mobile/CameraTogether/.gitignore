@@ -69,3 +69,5 @@ Resources/
 
 # sweetpad用
 buildServer.json
+
+GoogleService-Info.plist
