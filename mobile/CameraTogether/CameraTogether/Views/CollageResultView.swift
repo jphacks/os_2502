@@ -23,7 +23,7 @@ struct CollageResultView: View {
                 gradient: Gradient(colors: [
                     appColors.backgroundTop,
                     appColors.backgroundMiddle,
-                    appColors.backgroundBottom
+                    appColors.backgroundBottom,
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
@@ -165,8 +165,9 @@ struct CollageResultView: View {
         )
 
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootVC = window.rootViewController {
+            let window = windowScene.windows.first,
+            let rootVC = window.rootViewController
+        {
             rootVC.present(activityVC, animated: true)
         }
     }
@@ -289,7 +290,9 @@ class CollageGenerator {
         return path
     }
 
-    private func parseCoordinates(from string: String, startingAt index: inout String.Index, count: Int) -> [CGFloat]? {
+    private func parseCoordinates(
+        from string: String, startingAt index: inout String.Index, count: Int
+    ) -> [CGFloat]? {
         var coords: [CGFloat] = []
         var numberString = ""
 
@@ -336,7 +339,7 @@ class CollageGenerator {
         viewBox: "0 0 1 1",
         frames: [
             CollageTemplateFrame(id: 1, path: "M0.02 0.02H0.49V0.98H0.02V0.02Z"),
-            CollageTemplateFrame(id: 2, path: "M0.51 0.02H0.98V0.98H0.51V0.02Z")
+            CollageTemplateFrame(id: 2, path: "M0.51 0.02H0.98V0.98H0.51V0.02Z"),
         ]
     )
 

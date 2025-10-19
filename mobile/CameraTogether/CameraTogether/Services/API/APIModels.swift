@@ -41,6 +41,7 @@ struct APIGroup: Codable, Identifiable {
     let finalizedAt: String?
     let countdownStartedAt: String?
     let scheduledCaptureTime: String?
+    let templateId: String?
     let expiresAt: String?
     let createdAt: String
     let updatedAt: String
@@ -57,6 +58,7 @@ struct APIGroup: Codable, Identifiable {
         case finalizedAt = "finalized_at"
         case countdownStartedAt = "countdown_started_at"
         case scheduledCaptureTime = "scheduled_capture_time"
+        case templateId = "template_id"
         case expiresAt = "expires_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"

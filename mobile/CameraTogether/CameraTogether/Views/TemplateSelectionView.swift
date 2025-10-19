@@ -24,7 +24,7 @@ struct TemplateSelectionView: View {
                 gradient: Gradient(colors: [
                     appColors.backgroundTop,
                     appColors.backgroundMiddle,
-                    appColors.backgroundBottom
+                    appColors.backgroundBottom,
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
@@ -70,10 +70,12 @@ struct TemplateSelectionView: View {
                     Spacer()
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 16) {
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible()),
+                            ], spacing: 16
+                        ) {
                             ForEach(templates) { template in
                                 TemplateCard(
                                     template: template,
@@ -164,7 +166,9 @@ struct TemplateCard: View {
                 }
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(isSelected ? Color.blue : Color.white.opacity(0.3), lineWidth: isSelected ? 3 : 1)
+                        .stroke(
+                            isSelected ? Color.blue : Color.white.opacity(0.3),
+                            lineWidth: isSelected ? 3 : 1)
                 )
 
                 Text(template.name)
@@ -225,22 +229,30 @@ struct FrameShape: Shape {
 
             switch command {
             case "M":  // MoveTo
-                if let coords = parseCoordinates(from: commands, startingAt: &commandIndex, count: 2) {
+                if let coords = parseCoordinates(
+                    from: commands, startingAt: &commandIndex, count: 2)
+                {
                     currentPoint = CGPoint(x: coords[0] * scaleX, y: coords[1] * scaleY)
                     path.move(to: currentPoint)
                 }
             case "L":  // LineTo
-                if let coords = parseCoordinates(from: commands, startingAt: &commandIndex, count: 2) {
+                if let coords = parseCoordinates(
+                    from: commands, startingAt: &commandIndex, count: 2)
+                {
                     currentPoint = CGPoint(x: coords[0] * scaleX, y: coords[1] * scaleY)
                     path.addLine(to: currentPoint)
                 }
             case "H":  // Horizontal Line
-                if let coords = parseCoordinates(from: commands, startingAt: &commandIndex, count: 1) {
+                if let coords = parseCoordinates(
+                    from: commands, startingAt: &commandIndex, count: 1)
+                {
                     currentPoint = CGPoint(x: coords[0] * scaleX, y: currentPoint.y)
                     path.addLine(to: currentPoint)
                 }
             case "V":  // Vertical Line
-                if let coords = parseCoordinates(from: commands, startingAt: &commandIndex, count: 1) {
+                if let coords = parseCoordinates(
+                    from: commands, startingAt: &commandIndex, count: 1)
+                {
                     currentPoint = CGPoint(x: currentPoint.x, y: coords[0] * scaleY)
                     path.addLine(to: currentPoint)
                 }
@@ -254,7 +266,9 @@ struct FrameShape: Shape {
         return path
     }
 
-    private func parseCoordinates(from string: String, startingAt index: inout String.Index, count: Int) -> [CGFloat]? {
+    private func parseCoordinates(
+        from string: String, startingAt index: inout String.Index, count: Int
+    ) -> [CGFloat]? {
         var coords: [CGFloat] = []
         var numberString = ""
 

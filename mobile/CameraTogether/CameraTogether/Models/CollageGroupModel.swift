@@ -67,6 +67,7 @@ struct CollageGroup: Identifiable, Codable {
     var ownerId: String
     var isFinalized: Bool  // メンバーが確定したかどうか
     var scheduledCaptureTime: Date?  // サーバーが指定した撮影予定時刻（同期撮影用）
+    var templateId: String?  // 選択されたテンプレートID（グループ内で統一）
 
     init(
         id: String = UUID().uuidString,
@@ -74,7 +75,8 @@ struct CollageGroup: Identifiable, Codable {
         maxMembers: Int = 10,
         ownerId: String,
         isFinalized: Bool = false,
-        scheduledCaptureTime: Date? = nil
+        scheduledCaptureTime: Date? = nil,
+        templateId: String? = nil
     ) {
         self.id = id
         self.type = type
@@ -85,6 +87,7 @@ struct CollageGroup: Identifiable, Codable {
         self.ownerId = ownerId
         self.isFinalized = isFinalized
         self.scheduledCaptureTime = scheduledCaptureTime
+        self.templateId = templateId
     }
 
     var canAddMember: Bool {
@@ -133,6 +136,7 @@ extension CollageGroup {
         // ステータスがrecruitingでなければメンバー確定済みと判断
         self.isFinalized = status != .recruiting
         self.scheduledCaptureTime = scheduledCaptureTime
+        self.templateId = apiGroup.templateId
     }
 
     /// CollageGroupをAPI用のパラメータに変換

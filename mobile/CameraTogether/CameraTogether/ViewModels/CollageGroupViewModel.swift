@@ -256,7 +256,9 @@ class CollageGroupViewModel {
                 updatedGroup.members = group.members
 
                 // オーナーを自動的に準備完了にする（ローカルでも反映）
-                if let ownerIndex = updatedGroup.members.firstIndex(where: { $0.id == currentUserId }) {
+                if let ownerIndex = updatedGroup.members.firstIndex(where: {
+                    $0.id == currentUserId
+                }) {
                     updatedGroup.members[ownerIndex].isReady = true
                 }
 
@@ -448,11 +450,9 @@ class CollageGroupViewModel {
 
             updatedGroup.members = updatedMembers
             currentGroup = updatedGroup
-
-            print("🔄 Refreshed group: status=\(updatedGroup.status), finalized=\(updatedGroup.isFinalized), members=\(updatedMembers.count)")
         } catch {
             // ポーリング中のエラーは無視（UI更新しない）
-            print("⚠️ Polling error (ignored): \(error.localizedDescription)")
+            print("Polling error (ignored): \(error.localizedDescription)")
         }
     }
 
@@ -468,24 +468,20 @@ class CollageGroupViewModel {
 
     /// カウントダウン開始
     @MainActor
-    func startCountdownWithAPI() async -> Bool {
+    func startCountdownWithAPI(templateId: String) async -> Bool {
         guard let group = currentGroup else {
             return false
-        }
-
-        // ローカルグループの場合はAPIをスキップ
-        if group.type == .temporaryLocal {
-            return true
         }
 
         isLoading = true
         errorMessage = nil
 
         do {
-            // カウントダウン開始APIを呼び出し
+            // カウントダウン開始APIを呼び出し（テンプレートIDを渡す）
             let apiGroup = try await groupAPI.startCountdown(
                 groupId: group.id,
-                userId: currentUserId
+                userId: currentUserId,
+                templateId: templateId
             )
 
             // グループ情報を更新

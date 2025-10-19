@@ -15,6 +15,8 @@ struct CountdownWithGuideView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     @State private var countdownTimer: Timer?
+    @State private var isUploading = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
@@ -63,32 +65,42 @@ struct CountdownWithGuideView: View {
                         .scaleEffect(x: 1, y: 4, anchor: .center)
                         .padding(.horizontal, 40)
                         .padding(.bottom, 60)
-                } else if capturedImage != nil {
-                    VStack {
-                        Spacer()
+                } else if let image = capturedImage {
+                    ZStack {
+                        Color.black.opacity(0.7).ignoresSafeArea()
 
-                        Text("撮影完了")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.5), radius: 10)
-
-                        Spacer()
-
-                        Button {
-                            showingResult = true
-                        } label: {
-                            Text("確認")
-                                .font(.title2)
-                                .fontWeight(.semibold)
+                        VStack(spacing: 20) {
+                            Text(isUploading ? "アップロード中..." : "撮影完了")
+                                .font(.title)
+                                .fontWeight(.bold)
                                 .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.blue)
+
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: 300, maxHeight: 400)
                                 .cornerRadius(12)
+                                .shadow(radius: 10)
+
+                            if isUploading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.5)
+                            } else {
+                                Button {
+                                    dismiss()
+                                } label: {
+                                    Text("ホームに戻る")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.blue)
+                                        .cornerRadius(12)
+                                }
+                                .padding(.horizontal, 40)
+                            }
                         }
-                        .padding(.horizontal, 40)
-                        .padding(.bottom, 60)
                     }
                 }
             }
@@ -103,7 +115,6 @@ struct CountdownWithGuideView: View {
             await setupCamera()
         }
         .onAppear {
-            print("CountdownWithGuideView appeared")
             startCountdown()
         }
         .onDisappear {
@@ -182,7 +193,8 @@ struct CountdownWithGuideView: View {
         print("Starting countdown from \(countdown) seconds")
 
         // 高精度タイマーで毎秒更新
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [self] timer in
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) {
+            [self] timer in
             let remainingTime = scheduledTime.timeIntervalSinceNow
 
             if remainingTime <= 0 {
@@ -229,19 +241,21 @@ struct CountdownWithGuideView: View {
         }
 
         do {
-            print("📸 Capturing photo...")
+            print("Capturing photo...")
             let image = try await cameraService.capturePhoto()
             print("Photo captured successfully")
 
             await MainActor.run {
                 isCountingDown = false
                 capturedImage = image
+                isUploading = true
             }
 
             // 画像をサーバーにアップロード
             await uploadPhotoToServer(image: image)
 
             await MainActor.run {
+                isUploading = false
                 viewModel.completeSession()
             }
         } catch {
@@ -273,6 +287,7 @@ struct CountdownWithGuideView: View {
         } catch {
             print("Failed to upload photo: \(error.localizedDescription)")
             await MainActor.run {
+                isUploading = false
                 errorMessage = "写真のアップロードに失敗しました: \(error.localizedDescription)"
                 showingError = true
             }
@@ -361,7 +376,9 @@ struct FrameGuidePath: Shape {
         return path
     }
 
-    private func parseCoordinates(from string: String, startingAt index: inout String.Index, count: Int) -> [CGFloat]? {
+    private func parseCoordinates(
+        from string: String, startingAt index: inout String.Index, count: Int
+    ) -> [CGFloat]? {
         var coords: [CGFloat] = []
         var numberString = ""
 
@@ -416,9 +433,10 @@ struct CameraPreviewWrapper: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIView, context: Context) {
         if let previewLayer = context.coordinator.previewLayer {
-            DispatchQueue.main.async {
-                previewLayer.frame = uiView.bounds
-            }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            previewLayer.frame = uiView.bounds
+            CATransaction.commit()
         }
     }
 

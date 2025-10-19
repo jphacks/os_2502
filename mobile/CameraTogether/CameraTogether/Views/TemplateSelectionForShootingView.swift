@@ -25,7 +25,7 @@ struct TemplateSelectionForShootingView: View {
                     gradient: Gradient(colors: [
                         appColors.backgroundTop,
                         appColors.backgroundMiddle,
-                        appColors.backgroundBottom
+                        appColors.backgroundBottom,
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -81,9 +81,11 @@ struct TemplateSelectionForShootingView: View {
                                 .foregroundColor(appColors.textSecondary)
                             Text("利用可能なテンプレートがありません")
                                 .foregroundColor(appColors.textSecondary)
-                            Text("\(viewModel.currentGroup?.members.count ?? 0)人用のテンプレートが見つかりませんでした")
-                                .font(.caption)
-                                .foregroundColor(appColors.textSecondary)
+                            Text(
+                                "\(viewModel.currentGroup?.members.count ?? 0)人用のテンプレートが見つかりませんでした"
+                            )
+                            .font(.caption)
+                            .foregroundColor(appColors.textSecondary)
                         }
                         Spacer()
                     } else {
@@ -141,7 +143,7 @@ struct TemplateSelectionForShootingView: View {
             // テンプレートが見つかった場合、ランダムに選択
             if !templates.isEmpty {
                 // 少し待ってからランダム選択（UI効果のため）
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+                try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5秒
 
                 let randomTemplate = templates.randomElement()!
                 print("Selected random template: \(randomTemplate.name)")

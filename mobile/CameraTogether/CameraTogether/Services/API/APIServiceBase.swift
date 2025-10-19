@@ -3,7 +3,8 @@ import Foundation
 /// API通信の基底クラス
 class APIServiceBase {
     /// ベースURL（/api付き）
-    let baseURL = URL(string: Configuration.shared.apiUrl)!.appendingPathComponent("api").appendingPathComponent("api")
+    let baseURL = URL(string: Configuration.shared.apiUrl)!.appendingPathComponent("api")
+        .appendingPathComponent("api")
 
     /// JSONエンコーダー
     let encoder: JSONEncoder = {
@@ -38,10 +39,11 @@ class APIServiceBase {
             guard httpResponse.statusCode == successStatusCode else {
                 // エラー時のレスポンスボディをログ出力
                 if let errorBody = String(data: data, encoding: .utf8) {
-                    print("❌ API Error Response: \(errorBody)")
+                    print("API Error Response: \(errorBody)")
                 }
                 throw APIError.httpError(
-                    statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8))
+                    statusCode: httpResponse.statusCode,
+                    message: String(data: data, encoding: .utf8))
             }
 
             do {

@@ -1,6 +1,6 @@
 import AVFoundation
-import UIKit
 import Combine
+import UIKit
 
 /// カメラ撮影を管理するサービス
 class CameraService: NSObject, ObservableObject {
@@ -52,42 +52,44 @@ class CameraService: NSObject, ObservableObject {
 
     /// カメラセッションをセットアップ
     func setupSession() throws {
-        print("📷 CameraService.setupSession() started")
+        print("CameraService.setupSession() started")
 
         guard isAuthorized else {
-            print("❌ Not authorized")
+            print("Not authorized")
             throw CameraError.notAuthorized
         }
 
-        print("📷 Beginning configuration...")
+        print("Beginning configuration...")
         captureSession.beginConfiguration()
 
         // カメラデバイスを取得（フロントカメラ優先）
-        print("📷 Looking for camera device...")
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
-                ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-            print("❌ No camera device found")
+        print("Looking for camera device...")
+        guard
+            let camera = AVCaptureDevice.default(
+                .builtInWideAngleCamera, for: .video, position: .front)
+                ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+        else {
             captureSession.commitConfiguration()
             throw CameraError.cameraUnavailable
         }
-        print("✅ Found camera: \(camera.localizedName)")
+        print("Found camera: \(camera.localizedName)")
 
         // カメラ入力を追加
-        print("📷 Creating camera input...")
+        print("Creating camera input...")
         let input = try AVCaptureDeviceInput(device: camera)
-        print("📷 Checking if can add input...")
+        print("Checking if can add input...")
         if captureSession.canAddInput(input) {
-            print("📷 Adding input to session...")
+            print("Adding input to session...")
             captureSession.addInput(input)
-            print("✅ Input added")
+            print("Input added")
         } else {
-            print("❌ Cannot add input to session")
+            print("Cannot add input to session")
         }
 
         // 写真出力を追加
-        print("📷 Checking if can add output...")
+        print("Checking if can add output...")
         if captureSession.canAddOutput(photoOutput) {
-            print("📷 Adding photo output...")
+            print("Adding photo output...")
             captureSession.addOutput(photoOutput)
 
             // 高画質設定
@@ -97,29 +99,31 @@ class CameraService: NSObject, ObservableObject {
                     connection.videoOrientation = .portrait
                 }
             }
-            print("✅ Photo output added")
+            print("Photo output added")
         } else {
-            print("❌ Cannot add photo output")
+            print("Cannot add photo output")
         }
 
-        print("📷 Committing configuration...")
+        print("Committing configuration...")
         captureSession.commitConfiguration()
-        print("✅ CameraService.setupSession() completed")
+        print("CameraService.setupSession() completed")
     }
 
     /// セッションを開始
     func startSession() {
-        print("📷 startSession() called, isRunning: \(captureSession.isRunning)")
+        print("startSession() called, isRunning: \(captureSession.isRunning)")
         if !captureSession.isRunning {
-            print("📷 Starting capture session on background queue...")
+            print("Starting capture session on background queue...")
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let self = self else { return }
-                print("📷 Calling captureSession.startRunning()...")
+                print("Calling captureSession.startRunning()...")
                 self.captureSession.startRunning()
-                print("📷 captureSession.startRunning() returned, isRunning: \(self.captureSession.isRunning)")
+                print(
+                    "captureSession.startRunning() returned, isRunning: \(self.captureSession.isRunning)"
+                )
             }
         } else {
-            print("📷 Session already running")
+            print("Session already running")
         }
     }
 
@@ -166,7 +170,10 @@ class CameraService: NSObject, ObservableObject {
 // MARK: - AVCapturePhotoCaptureDelegate
 
 extension CameraService: AVCapturePhotoCaptureDelegate {
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+    func photoOutput(
+        _ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto,
+        error: Error?
+    ) {
         if let error = error {
             photoContinuation?.resume(throwing: error)
             photoContinuation = nil
@@ -174,7 +181,8 @@ extension CameraService: AVCapturePhotoCaptureDelegate {
         }
 
         guard let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else {
+            let image = UIImage(data: imageData)
+        else {
             photoContinuation?.resume(throwing: CameraError.captureFailed)
             photoContinuation = nil
             return

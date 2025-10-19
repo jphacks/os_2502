@@ -155,15 +155,16 @@ class GroupAPIService: APIServiceBase {
     /// - Parameters:
     ///   - groupId: グループID
     ///   - userId: オーナーのユーザーID
-    /// - Returns: 更新されたグループ（撮影時刻を含む）
-    func startCountdown(groupId: String, userId: String) async throws -> APIGroup {
+    ///   - templateId: 使用するテンプレートID
+    /// - Returns: 更新されたグループ（撮影時刻とテンプレートIDを含む）
+    func startCountdown(groupId: String, userId: String, templateId: String) async throws -> APIGroup {
         let url = baseURL.appendingPathComponent("groups").appendingPathComponent(groupId)
             .appendingPathComponent("start-countdown")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body = ["user_id": userId]
+        let body = ["user_id": userId, "template_id": templateId]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         return try await performRequest(request, expecting: APIGroup.self)
@@ -235,7 +236,8 @@ class GroupAPIService: APIServiceBase {
     ///   - image: アップロードする画像
     ///   - frameIndex: フレームインデックス（担当パート番号）
     /// - Returns: アップロード結果
-    func uploadPhoto(groupId: String, userId: String, image: UIImage, frameIndex: Int) async throws {
+    func uploadPhoto(groupId: String, userId: String, image: UIImage, frameIndex: Int) async throws
+    {
 
         // 画像をJPEGに変換
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
@@ -244,7 +246,11 @@ class GroupAPIService: APIServiceBase {
 
         // 画像アップロードは /image エンドポイントを使用
         let imageBaseURL = URL(string: Configuration.shared.apiUrl)!
-        let urlString = "\(imageBaseURL.absoluteString)/image/groups/\(groupId)/photos"
+        var baseUrlString = imageBaseURL.absoluteString
+        if baseUrlString.hasSuffix("/") {
+            baseUrlString.removeLast()
+        }
+        let urlString = "\(baseUrlString)/image/groups/\(groupId)/photos"
         guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
@@ -253,7 +259,8 @@ class GroupAPIService: APIServiceBase {
         let boundary = UUID().uuidString
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue(
+            "multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         var body = Data()
 
@@ -264,12 +271,15 @@ class GroupAPIService: APIServiceBase {
 
         // frame_index フィールド
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"frame_index\"\r\n\r\n".data(using: .utf8)!)
+        body.append(
+            "Content-Disposition: form-data; name=\"frame_index\"\r\n\r\n".data(using: .utf8)!)
         body.append("\(frameIndex)\r\n".data(using: .utf8)!)
 
         // photo ファイル
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"photo\"; filename=\"photo.jpg\"\r\n".data(using: .utf8)!)
+        body.append(
+            "Content-Disposition: form-data; name=\"photo\"; filename=\"photo.jpg\"\r\n".data(
+                using: .utf8)!)
         body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
         body.append(imageData)
         body.append("\r\n".data(using: .utf8)!)

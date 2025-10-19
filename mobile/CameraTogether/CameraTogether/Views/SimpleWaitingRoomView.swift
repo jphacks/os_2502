@@ -127,7 +127,6 @@ struct SimpleWaitingRoomView: View {
 
             // ステータスがcountdownに変わったら、参加者も自動的に撮影画面に遷移
             if newStatus == .countdown && !viewModel.isOwner && !showingCountdown {
-
                 Task {
                     await loadRandomTemplateForParticipant()
                 }
@@ -180,9 +179,27 @@ struct SimpleWaitingRoomView: View {
                 .background(Color.white.opacity(0.1))
 
             if let group = viewModel.currentGroup {
-                let _ = print("🔍 Button section - finalized: \(group.isFinalized), allReady: \(group.allMembersReady), isOwner: \(viewModel.isOwner), memberCount: \(group.members.count)")
+                let _ = print(
+                    "Button section - finalized: \(group.isFinalized), allReady: \(group.allMembersReady), isOwner: \(viewModel.isOwner), memberCount: \(group.members.count)"
+                )
 
-                if !group.isFinalized && viewModel.isOwner && group.members.count > 1 {
+                if !group.isFinalized && viewModel.isOwner && group.members.count == 1 {
+                    let _ = print("Showing: メンバー招待メッセージ")
+                    // グループ未確定 & オーナー & 1人のみ: 招待メッセージ
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.badge.plus")
+                            .font(.largeTitle)
+                            .foregroundColor(appColors.textSecondary)
+                        Text("メンバーを招待してください")
+                            .font(.headline)
+                            .foregroundColor(appColors.textPrimary)
+                        Text("右上の + ボタンからメンバーを追加できます")
+                            .font(.caption)
+                            .foregroundColor(appColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.vertical, 24)
+                } else if !group.isFinalized && viewModel.isOwner && group.members.count > 1 {
                     let _ = print("Showing: グループ確定ボタン")
                     // グループ未確定 & オーナー & 2人以上: グループ確定ボタン
                     Button {
@@ -385,7 +402,7 @@ struct SimpleWaitingRoomView: View {
 
             // ランダムに1つ選択
             let randomTemplate = templates.randomElement()!
-            print("Selected random template: \(randomTemplate.name)")
+            print("Selected random template: \(randomTemplate.name), id: \(randomTemplate.id)")
 
             // 自分のフレームインデックスを取得
             let members = group.members
@@ -398,18 +415,18 @@ struct SimpleWaitingRoomView: View {
                 myFrameIndex = myIndex
             }
 
-            // API呼び出し
-            print("📡 Calling startCountdownWithAPI...")
-            let success = await viewModel.startCountdownWithAPI()
-            print("📡 startCountdownWithAPI result: \(success)")
+            // API呼び出し（テンプレートIDを渡す）
+            let success = await viewModel.startCountdownWithAPI(templateId: randomTemplate.id)
 
             await MainActor.run {
                 isLoadingTemplate = false
                 if success {
-                    print("Navigating to countdown")
-                    showingCountdown = true
+                    if viewModel.currentGroup?.scheduledCaptureTime != nil {
+                        showingCountdown = true
+                    } else {
+                        templateError = "撮影時刻の取得に失敗しました"
+                    }
                 } else {
-                    print("Failed to start countdown")
                     templateError = "撮影開始に失敗しました"
                 }
             }
@@ -422,7 +439,7 @@ struct SimpleWaitingRoomView: View {
         }
     }
 
-    /// 参加者用: ステータス変更を検知してテンプレートをロードし遷移
+    /// 参加者用: サーバーから取得したテンプレートIDを使ってテンプレートをロードし遷移
     private func loadRandomTemplateForParticipant() async {
         await MainActor.run {
             isLoadingTemplate = true
@@ -437,40 +454,42 @@ struct SimpleWaitingRoomView: View {
             return
         }
 
-        let photoCount = group.members.count
-        print("[Participant] Loading templates for \(photoCount) photos...")
+        // サーバーから取得したテンプレートIDを確認
+        guard let templateId = group.templateId else {
+            print("[Participant] Template ID not found in group")
+            await MainActor.run {
+                isLoadingTemplate = false
+                templateError = "テンプレートIDが見つかりません"
+            }
+            return
+        }
+
+        print("[Participant] Using template ID from server: \(templateId)")
 
         do {
             let templateService = TemplateAPIService.shared
-            let templates = try await templateService.getTemplates(photoCount: photoCount)
+            // 指定されたテンプレートIDでテンプレートを取得
+            let template = try await templateService.getTemplate(id: templateId)
 
-            print("[Participant] Got \(templates.count) templates")
-
-            guard !templates.isEmpty else {
-                print("No templates found for \(photoCount) photos")
-                await MainActor.run {
-                    isLoadingTemplate = false
-                    templateError = "\(photoCount)人用のテンプレートが見つかりません"
-                }
-                return
-            }
-
-            let randomTemplate = templates.randomElement()!
-            print("[Participant] Selected random template: \(randomTemplate.name)")
+            print("[Participant] Loaded template: \(template.name)")
 
             let members = group.members
             let myIndex = members.firstIndex(where: { $0.id == viewModel.currentUserId }) ?? 0
             print("[Participant] My frame index: \(myIndex)")
 
             await MainActor.run {
-                selectedTemplate = randomTemplate
+                selectedTemplate = template
                 myFrameIndex = myIndex
                 isLoadingTemplate = false
-                showingCountdown = true
-                print("[Participant] Navigating to countdown")
+
+                if viewModel.currentGroup?.scheduledCaptureTime != nil {
+                    showingCountdown = true
+                } else {
+                    templateError = "撮影時刻の取得に失敗しました"
+                }
             }
         } catch {
-            print("[Participant] Failed to load templates: \(error.localizedDescription)")
+            print("[Participant] Failed to load template: \(error.localizedDescription)")
             await MainActor.run {
                 isLoadingTemplate = false
                 templateError = "テンプレート読み込みエラー: \(error.localizedDescription)"
