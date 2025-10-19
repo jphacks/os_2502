@@ -118,6 +118,13 @@ func (r *Router) SetupRoutes() http.Handler {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	mux.HandleFunc("/api/groups/by-invitation", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			groupHandler.GetGroupByInvitationToken(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	// /api/groups/{id}/members
 	mux.HandleFunc("/api/groups/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
