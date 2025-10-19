@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// グループ関連のAPI通信を管理するサービス
 class GroupAPIService: APIServiceBase {
@@ -223,5 +224,61 @@ class GroupAPIService: APIServiceBase {
         request.httpMethod = "DELETE"
 
         try await performRequest(request, successStatusCode: 200)
+    }
+
+    // MARK: - Photo Upload
+
+    /// 撮影した写真をサーバーにアップロード
+    /// - Parameters:
+    ///   - groupId: グループID
+    ///   - userId: ユーザーID
+    ///   - image: アップロードする画像
+    ///   - frameIndex: フレームインデックス（担当パート番号）
+    /// - Returns: アップロード結果
+    func uploadPhoto(groupId: String, userId: String, image: UIImage, frameIndex: Int) async throws {
+
+        // 画像をJPEGに変換
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw APIError.invalidResponse
+        }
+
+        // 画像アップロードは /image エンドポイントを使用
+        let imageBaseURL = URL(string: Configuration.shared.apiUrl)!.appendingPathComponent("image")
+        let url = imageBaseURL
+            .appendingPathComponent("groups")
+            .appendingPathComponent(groupId)
+            .appendingPathComponent("photos")
+
+        // マルチパートフォームデータを作成
+        let boundary = UUID().uuidString
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+
+        // user_id フィールド
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"user_id\"\r\n\r\n".data(using: .utf8)!)
+        body.append("\(userId)\r\n".data(using: .utf8)!)
+
+        // frame_index フィールド
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"frame_index\"\r\n\r\n".data(using: .utf8)!)
+        body.append("\(frameIndex)\r\n".data(using: .utf8)!)
+
+        // photo ファイル
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"photo\"; filename=\"photo.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // 終了バウンダリ
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        try await performRequest(request, successStatusCode: 201)
     }
 }

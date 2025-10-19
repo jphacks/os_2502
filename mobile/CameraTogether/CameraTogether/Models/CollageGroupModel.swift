@@ -50,9 +50,10 @@ struct CollageGroupMember: Identifiable, Codable {
     let name: String
     var isReady: Bool = false
 
-    init(id: String = UUID().uuidString, name: String) {
+    init(id: String = UUID().uuidString, name: String, isReady: Bool = false) {
         self.id = id
         self.name = name
+        self.isReady = isReady
     }
 }
 
@@ -64,12 +65,14 @@ struct CollageGroup: Identifiable, Codable {
     var status: GroupStatus
     let inviteCode: String
     var ownerId: String
+    var isFinalized: Bool  // メンバーが確定したかどうか
 
     init(
         id: String = UUID().uuidString,
         type: GroupType,
         maxMembers: Int = 10,
-        ownerId: String
+        ownerId: String,
+        isFinalized: Bool = false
     ) {
         self.id = id
         self.type = type
@@ -78,10 +81,11 @@ struct CollageGroup: Identifiable, Codable {
         self.status = .recruiting
         self.inviteCode = UUID().uuidString.prefix(8).uppercased()
         self.ownerId = ownerId
+        self.isFinalized = isFinalized
     }
 
     var canAddMember: Bool {
-        members.count < maxMembers
+        !isFinalized && members.count < maxMembers
     }
 
     var allMembersReady: Bool {
@@ -109,6 +113,8 @@ extension CollageGroup {
         self.status = status
         self.inviteCode = apiGroup.invitationToken
         self.ownerId = apiGroup.ownerUserId
+        // ステータスがrecruitingでなければメンバー確定済みと判断
+        self.isFinalized = status != .recruiting
     }
 
     /// CollageGroupをAPI用のパラメータに変換

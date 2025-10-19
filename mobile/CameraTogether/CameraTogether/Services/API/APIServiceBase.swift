@@ -2,8 +2,8 @@ import Foundation
 
 /// API通信の基底クラス
 class APIServiceBase {
-    /// ベースURL
-    let baseURL = URL(string: Configuration.shared.apiUrl)!
+    /// ベースURL（/api付き）
+    let baseURL = URL(string: Configuration.shared.apiUrl)!.appendingPathComponent("api").appendingPathComponent("api")
 
     /// JSONエンコーダー
     let encoder: JSONEncoder = {
@@ -27,19 +27,33 @@ class APIServiceBase {
         expecting type: T.Type,
         successStatusCode: Int = 200
     ) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // リクエスト詳細をログ出力
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+
+            guard httpResponse.statusCode == successStatusCode else {
+                // エラー時のレスポンスボディをログ出力
+                if let errorBody = String(data: data, encoding: .utf8) {
+                    print("❌ API Error Response: \(errorBody)")
+                }
+                throw APIError.httpError(
+                    statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8))
+            }
+
+            do {
+                return try decoder.decode(T.self, from: data)
+            } catch {
+                throw APIError.decodingError
+            }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw error
         }
-
-        guard httpResponse.statusCode == successStatusCode else {
-            // エラー時のレスポンスボディをログ出力
-            throw APIError.httpError(
-                statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8))
-        }
-
-        return try decoder.decode(T.self, from: data)
     }
 
     /// HTTPリクエストを実行（レスポンスなし）
