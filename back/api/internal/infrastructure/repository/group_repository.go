@@ -46,6 +46,11 @@ func toGroupModel(g *group.Group) *models.Group {
 		model.CountdownStartedAt.Time = *countdownStartedAt
 	}
 
+	if scheduledCaptureTime := g.ScheduledCaptureTime(); scheduledCaptureTime != nil {
+		model.ScheduledCaptureTime.Valid = true
+		model.ScheduledCaptureTime.Time = *scheduledCaptureTime
+	}
+
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
 		model.ExpiresAt.Valid = true
 		model.ExpiresAt.Time = *expiresAt
@@ -68,6 +73,12 @@ func toGroupEntity(m *models.Group) (*group.Group, error) {
 		countdownStartedAt = &t
 	}
 
+	var scheduledCaptureTime *time.Time
+	if m.ScheduledCaptureTime.Valid {
+		t := m.ScheduledCaptureTime.Time
+		scheduledCaptureTime = &t
+	}
+
 	var expiresAt *time.Time
 	if m.ExpiresAt.Valid {
 		t := m.ExpiresAt.Time
@@ -85,6 +96,7 @@ func toGroupEntity(m *models.Group) (*group.Group, error) {
 		m.InvitationToken,
 		finalizedAt,
 		countdownStartedAt,
+		scheduledCaptureTime,
 		expiresAt,
 		m.CreatedAt,
 		m.UpdatedAt,

@@ -181,7 +181,7 @@ func (uc *GroupUseCase) MarkMemberReady(ctx context.Context, groupID, userID str
 
 	// 全員準備完了ならカウントダウン開始
 	if readyCount == g.CurrentMemberCount() && g.Status() == group.GroupStatusReadyCheck {
-		if err := g.StartCountdown(); err != nil {
+		if err := g.StartCountdown(10); err != nil {
 			return err
 		}
 		if err := uc.groupRepo.Update(ctx, g); err != nil {
@@ -209,8 +209,8 @@ func (uc *GroupUseCase) StartCountdown(ctx context.Context, groupID, userID stri
 		return nil, group.ErrInvalidOwnerUserID
 	}
 
-	// カウントダウン開始
-	if err := g.StartCountdown(); err != nil {
+	// カウントダウン開始（10秒後に撮影）
+	if err := g.StartCountdown(10); err != nil {
 		return nil, err
 	}
 

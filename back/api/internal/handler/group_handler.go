@@ -44,19 +44,20 @@ type MarkReadyRequest struct {
 }
 
 type GroupResponse struct {
-	ID                 string  `json:"id"`
-	OwnerUserID        string  `json:"owner_user_id"`
-	Name               string  `json:"name"`
-	GroupType          string  `json:"group_type"`
-	Status             string  `json:"status"`
-	MaxMember          int     `json:"max_member"`
-	CurrentMemberCount int     `json:"current_member_count"`
-	InvitationToken    string  `json:"invitation_token"`
-	FinalizedAt        *string `json:"finalized_at,omitempty"`
-	CountdownStartedAt *string `json:"countdown_started_at,omitempty"`
-	ExpiresAt          *string `json:"expires_at,omitempty"`
-	CreatedAt          string  `json:"created_at"`
-	UpdatedAt          string  `json:"updated_at"`
+	ID                   string  `json:"id"`
+	OwnerUserID          string  `json:"owner_user_id"`
+	Name                 string  `json:"name"`
+	GroupType            string  `json:"group_type"`
+	Status               string  `json:"status"`
+	MaxMember            int     `json:"max_member"`
+	CurrentMemberCount   int     `json:"current_member_count"`
+	InvitationToken      string  `json:"invitation_token"`
+	FinalizedAt          *string `json:"finalized_at,omitempty"`
+	CountdownStartedAt   *string `json:"countdown_started_at,omitempty"`
+	ScheduledCaptureTime *string `json:"scheduled_capture_time,omitempty"`
+	ExpiresAt            *string `json:"expires_at,omitempty"`
+	CreatedAt            string  `json:"created_at"`
+	UpdatedAt            string  `json:"updated_at"`
 }
 
 type GroupMemberResponse struct {
@@ -98,6 +99,11 @@ func toGroupResponse(g *group.Group) GroupResponse {
 	if countdownStartedAt := g.CountdownStartedAt(); countdownStartedAt != nil {
 		str := countdownStartedAt.Format(time.RFC3339)
 		resp.CountdownStartedAt = &str
+	}
+
+	if scheduledCaptureTime := g.ScheduledCaptureTime(); scheduledCaptureTime != nil {
+		str := scheduledCaptureTime.Format(time.RFC3339)
+		resp.ScheduledCaptureTime = &str
 	}
 
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
@@ -518,13 +524,13 @@ func (h *GroupHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract group ID from URL path: /api/groups/{groupId}/photos
+	// Extract group ID from URL path: /image/groups/{groupId}/photos
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
 		respondError(w, http.StatusBadRequest, "無効なURLです")
 		return
 	}
-	groupID := pathParts[3]
+	groupID := pathParts[3] // /image/groups/{groupId}/photos -> index 3 is groupId
 
 	// Parse multipart form
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB limit

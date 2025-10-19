@@ -34,19 +34,20 @@ const (
 )
 
 type Group struct {
-	id                 string
-	ownerUserID        string
-	name               string
-	groupType          GroupType
-	status             GroupStatus
-	maxMember          int
-	currentMemberCount int
-	invitationToken    string
-	finalizedAt        *time.Time
-	countdownStartedAt *time.Time
-	expiresAt          *time.Time
-	createdAt          time.Time
-	updatedAt          time.Time
+	id                    string
+	ownerUserID           string
+	name                  string
+	groupType             GroupType
+	status                GroupStatus
+	maxMember             int
+	currentMemberCount    int
+	invitationToken       string
+	finalizedAt           *time.Time
+	countdownStartedAt    *time.Time
+	scheduledCaptureTime  *time.Time
+	expiresAt             *time.Time
+	createdAt             time.Time
+	updatedAt             time.Time
 }
 
 // NewGroup creates a new group (max_member is system fixed value)
@@ -67,19 +68,20 @@ func NewGroup(ownerUserID, name string, groupType GroupType, expiresAt *time.Tim
 
 	now := time.Now()
 	return &Group{
-		id:                 uuid.New().String(),
-		ownerUserID:        ownerUserID,
-		name:               name,
-		groupType:          groupType,
-		status:             GroupStatusRecruiting,
-		maxMember:          SystemMaxMember, // システム固定値
-		currentMemberCount: 0,
-		invitationToken:    uuid.New().String(),
-		finalizedAt:        nil,
-		countdownStartedAt: nil,
-		expiresAt:          expiresAt,
-		createdAt:          now,
-		updatedAt:          now,
+		id:                   uuid.New().String(),
+		ownerUserID:          ownerUserID,
+		name:                 name,
+		groupType:            groupType,
+		status:               GroupStatusRecruiting,
+		maxMember:            SystemMaxMember, // システム固定値
+		currentMemberCount:   0,
+		invitationToken:      uuid.New().String(),
+		finalizedAt:          nil,
+		countdownStartedAt:   nil,
+		scheduledCaptureTime: nil,
+		expiresAt:            expiresAt,
+		createdAt:            now,
+		updatedAt:            now,
 	}, nil
 }
 
@@ -90,7 +92,7 @@ func Reconstruct(
 	status GroupStatus,
 	maxMember, currentMemberCount int,
 	invitationToken string,
-	finalizedAt, countdownStartedAt, expiresAt *time.Time,
+	finalizedAt, countdownStartedAt, scheduledCaptureTime, expiresAt *time.Time,
 	createdAt, updatedAt time.Time,
 ) (*Group, error) {
 	if id == "" {
@@ -118,19 +120,20 @@ func Reconstruct(
 	}
 
 	return &Group{
-		id:                 id,
-		ownerUserID:        ownerUserID,
-		name:               name,
-		groupType:          groupType,
-		status:             status,
-		maxMember:          maxMember,
-		currentMemberCount: currentMemberCount,
-		invitationToken:    invitationToken,
-		finalizedAt:        finalizedAt,
-		countdownStartedAt: countdownStartedAt,
-		expiresAt:          expiresAt,
-		createdAt:          createdAt,
-		updatedAt:          updatedAt,
+		id:                   id,
+		ownerUserID:          ownerUserID,
+		name:                 name,
+		groupType:            groupType,
+		status:               status,
+		maxMember:            maxMember,
+		currentMemberCount:   currentMemberCount,
+		invitationToken:      invitationToken,
+		finalizedAt:          finalizedAt,
+		countdownStartedAt:   countdownStartedAt,
+		scheduledCaptureTime: scheduledCaptureTime,
+		expiresAt:            expiresAt,
+		createdAt:            createdAt,
+		updatedAt:            updatedAt,
 	}, nil
 }
 
@@ -173,6 +176,10 @@ func (g *Group) FinalizedAt() *time.Time {
 
 func (g *Group) CountdownStartedAt() *time.Time {
 	return g.countdownStartedAt
+}
+
+func (g *Group) ScheduledCaptureTime() *time.Time {
+	return g.scheduledCaptureTime
 }
 
 func (g *Group) ExpiresAt() *time.Time {
@@ -248,14 +255,17 @@ func (g *Group) FinalizeMembers() error {
 	return nil
 }
 
-// StartCountdown starts the countdown
-func (g *Group) StartCountdown() error {
+// StartCountdown starts the countdown and sets the scheduled capture time (10 seconds from now)
+func (g *Group) StartCountdown(countdownSeconds int) error {
 	if g.status != GroupStatusReadyCheck {
 		return ErrGroupNotReadyCheck
 	}
 	now := time.Now()
+	scheduledTime := now.Add(time.Duration(countdownSeconds) * time.Second)
+
 	g.status = GroupStatusCountdown
 	g.countdownStartedAt = &now
+	g.scheduledCaptureTime = &scheduledTime
 	g.updatedAt = now
 	return nil
 }

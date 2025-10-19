@@ -328,6 +328,6 @@ func (r *Router) SetupRoutes() http.Handler {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-  
+
 	return middleware.CORSMiddleware(mux)
 }
