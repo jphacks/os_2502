@@ -497,24 +497,6 @@ struct SimpleWaitingRoomView: View {
         }
     }
 
-    private func startPhotoSession() async {
-        print("startPhotoSession: Button tapped!")
-
-        // カウントダウン開始APIを呼び出し、撮影時刻を取得
-        let success = await viewModel.startCountdownWithAPI()
-
-        print("startPhotoSession: API result = \(success)")
-
-        if success {
-            // カウントダウン画面に遷移
-            DispatchQueue.main.async {
-                print("startPhotoSession: Showing countdown")
-                showingCountdown = true
-            }
-        } else {
-            print("startPhotoSession: Failed to start countdown")
-        }
-    }
 }
 
 #Preview {
