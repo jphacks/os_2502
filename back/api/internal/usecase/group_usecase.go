@@ -180,7 +180,7 @@ func (uc *GroupUseCase) GetGroupMembers(ctx context.Context, groupID string) ([]
 }
 
 // StartCountdown starts the countdown for photo session
-func (uc *GroupUseCase) StartCountdown(ctx context.Context, groupID, userID string) (*group.Group, error) {
+func (uc *GroupUseCase) StartCountdown(ctx context.Context, groupID, userID, templateID string) (*group.Group, error) {
 	g, err := uc.groupRepo.FindByID(ctx, groupID)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func (uc *GroupUseCase) StartCountdown(ctx context.Context, groupID, userID stri
 	}
 
 	// カウントダウン開始（10秒後に撮影）
-	if err := g.StartCountdown(10); err != nil {
+	if err := g.StartCountdown(10, templateID); err != nil {
 		return nil, err
 	}
 

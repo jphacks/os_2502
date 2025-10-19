@@ -55,6 +55,7 @@ type GroupResponse struct {
 	FinalizedAt          *string `json:"finalized_at,omitempty"`
 	CountdownStartedAt   *string `json:"countdown_started_at,omitempty"`
 	ScheduledCaptureTime *string `json:"scheduled_capture_time,omitempty"`
+	TemplateID           *string `json:"template_id,omitempty"`
 	ExpiresAt            *string `json:"expires_at,omitempty"`
 	CreatedAt            string  `json:"created_at"`
 	UpdatedAt            string  `json:"updated_at"`
@@ -104,6 +105,10 @@ func toGroupResponse(g *group.Group) GroupResponse {
 	if scheduledCaptureTime := g.ScheduledCaptureTime(); scheduledCaptureTime != nil {
 		str := scheduledCaptureTime.Format(time.RFC3339)
 		resp.ScheduledCaptureTime = &str
+	}
+
+	if templateID := g.TemplateID(); templateID != nil {
+		resp.TemplateID = templateID
 	}
 
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
@@ -455,7 +460,8 @@ func (h *GroupHandler) StartCountdown(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		UserID string `json:"user_id"`
+		UserID     string `json:"user_id"`
+		TemplateID string `json:"template_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "リクエストボディが無効です")
@@ -467,7 +473,12 @@ func (h *GroupHandler) StartCountdown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g, err := h.useCase.StartCountdown(r.Context(), groupID, req.UserID)
+	if req.TemplateID == "" {
+		respondError(w, http.StatusBadRequest, "テンプレートIDが必要です")
+		return
+	}
+
+	g, err := h.useCase.StartCountdown(r.Context(), groupID, req.UserID, req.TemplateID)
 	if err != nil {
 		switch err {
 		case group.ErrGroupNotFound:

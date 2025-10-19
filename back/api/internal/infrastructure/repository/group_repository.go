@@ -51,6 +51,11 @@ func toGroupModel(g *group.Group) *models.Group {
 		model.ScheduledCaptureTime.Time = *scheduledCaptureTime
 	}
 
+	if templateID := g.TemplateID(); templateID != nil {
+		model.TemplateID.Valid = true
+		model.TemplateID.String = *templateID
+	}
+
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
 		model.ExpiresAt.Valid = true
 		model.ExpiresAt.Time = *expiresAt
@@ -79,6 +84,11 @@ func toGroupEntity(m *models.Group) (*group.Group, error) {
 		scheduledCaptureTime = &t
 	}
 
+	var templateID *string
+	if m.TemplateID.Valid {
+		templateID = &m.TemplateID.String
+	}
+
 	var expiresAt *time.Time
 	if m.ExpiresAt.Valid {
 		t := m.ExpiresAt.Time
@@ -97,6 +107,7 @@ func toGroupEntity(m *models.Group) (*group.Group, error) {
 		finalizedAt,
 		countdownStartedAt,
 		scheduledCaptureTime,
+		templateID,
 		expiresAt,
 		m.CreatedAt,
 		m.UpdatedAt,

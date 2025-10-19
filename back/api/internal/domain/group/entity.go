@@ -45,6 +45,7 @@ type Group struct {
 	finalizedAt           *time.Time
 	countdownStartedAt    *time.Time
 	scheduledCaptureTime  *time.Time
+	templateID            *string
 	expiresAt             *time.Time
 	createdAt             time.Time
 	updatedAt             time.Time
@@ -79,6 +80,7 @@ func NewGroup(ownerUserID, name string, groupType GroupType, expiresAt *time.Tim
 		finalizedAt:          nil,
 		countdownStartedAt:   nil,
 		scheduledCaptureTime: nil,
+		templateID:           nil,
 		expiresAt:            expiresAt,
 		createdAt:            now,
 		updatedAt:            now,
@@ -92,7 +94,9 @@ func Reconstruct(
 	status GroupStatus,
 	maxMember, currentMemberCount int,
 	invitationToken string,
-	finalizedAt, countdownStartedAt, scheduledCaptureTime, expiresAt *time.Time,
+	finalizedAt, countdownStartedAt, scheduledCaptureTime *time.Time,
+	templateID *string,
+	expiresAt *time.Time,
 	createdAt, updatedAt time.Time,
 ) (*Group, error) {
 	if id == "" {
@@ -131,6 +135,7 @@ func Reconstruct(
 		finalizedAt:          finalizedAt,
 		countdownStartedAt:   countdownStartedAt,
 		scheduledCaptureTime: scheduledCaptureTime,
+		templateID:           templateID,
 		expiresAt:            expiresAt,
 		createdAt:            createdAt,
 		updatedAt:            updatedAt,
@@ -180,6 +185,10 @@ func (g *Group) CountdownStartedAt() *time.Time {
 
 func (g *Group) ScheduledCaptureTime() *time.Time {
 	return g.scheduledCaptureTime
+}
+
+func (g *Group) TemplateID() *string {
+	return g.templateID
 }
 
 func (g *Group) ExpiresAt() *time.Time {
@@ -256,7 +265,7 @@ func (g *Group) FinalizeMembers() error {
 }
 
 // StartCountdown starts the countdown and sets the scheduled capture time (10 seconds from now)
-func (g *Group) StartCountdown(countdownSeconds int) error {
+func (g *Group) StartCountdown(countdownSeconds int, templateID string) error {
 	if g.status != GroupStatusReadyCheck {
 		return ErrGroupNotReadyCheck
 	}
@@ -266,6 +275,7 @@ func (g *Group) StartCountdown(countdownSeconds int) error {
 	g.status = GroupStatusCountdown
 	g.countdownStartedAt = &now
 	g.scheduledCaptureTime = &scheduledTime
+	g.templateID = &templateID
 	g.updatedAt = now
 	return nil
 }
