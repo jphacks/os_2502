@@ -46,6 +46,8 @@ type Group struct {
 	CountdownStartedAt null.Time `boil:"countdown_started_at" json:"countdown_started_at,omitempty" toml:"countdown_started_at" yaml:"countdown_started_at,omitempty"`
 	// äºˆå®šæ’®å½±æ™‚åˆ»ï¼ˆå…¨ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆåŒæœŸç”¨ï¼‰
 	ScheduledCaptureTime null.Time `boil:"scheduled_capture_time" json:"scheduled_capture_time,omitempty" toml:"scheduled_capture_time" yaml:"scheduled_capture_time,omitempty"`
+	// é¸æŠžã•ã‚ŒãŸãƒ†ãƒ³ãƒ—ãƒ¬ãƒ¼ãƒˆID
+	TemplateID null.String `boil:"template_id" json:"template_id,omitempty" toml:"template_id" yaml:"template_id,omitempty"`
 	// æœ‰åŠ¹æœŸé™ï¼ˆä¸€æ™‚ã‚°ãƒ«ãƒ¼ãƒ—ç”¨ï¼‰
 	ExpiresAt null.Time `boil:"expires_at" json:"expires_at,omitempty" toml:"expires_at" yaml:"expires_at,omitempty"`
 	// ä½œæˆæ—¥æ™‚
@@ -69,6 +71,7 @@ var GroupColumns = struct {
 	FinalizedAt          string
 	CountdownStartedAt   string
 	ScheduledCaptureTime string
+	TemplateID           string
 	ExpiresAt            string
 	CreatedAt            string
 	UpdatedAt            string
@@ -84,6 +87,7 @@ var GroupColumns = struct {
 	FinalizedAt:          "finalized_at",
 	CountdownStartedAt:   "countdown_started_at",
 	ScheduledCaptureTime: "scheduled_capture_time",
+	TemplateID:           "template_id",
 	ExpiresAt:            "expires_at",
 	CreatedAt:            "created_at",
 	UpdatedAt:            "updated_at",
@@ -101,6 +105,7 @@ var GroupTableColumns = struct {
 	FinalizedAt          string
 	CountdownStartedAt   string
 	ScheduledCaptureTime string
+	TemplateID           string
 	ExpiresAt            string
 	CreatedAt            string
 	UpdatedAt            string
@@ -116,6 +121,7 @@ var GroupTableColumns = struct {
 	FinalizedAt:          "groups.finalized_at",
 	CountdownStartedAt:   "groups.countdown_started_at",
 	ScheduledCaptureTime: "groups.scheduled_capture_time",
+	TemplateID:           "groups.template_id",
 	ExpiresAt:            "groups.expires_at",
 	CreatedAt:            "groups.created_at",
 	UpdatedAt:            "groups.updated_at",
@@ -135,6 +141,7 @@ var GroupWhere = struct {
 	FinalizedAt          whereHelpernull_Time
 	CountdownStartedAt   whereHelpernull_Time
 	ScheduledCaptureTime whereHelpernull_Time
+	TemplateID           whereHelpernull_String
 	ExpiresAt            whereHelpernull_Time
 	CreatedAt            whereHelpertime_Time
 	UpdatedAt            whereHelpertime_Time
@@ -150,6 +157,7 @@ var GroupWhere = struct {
 	FinalizedAt:          whereHelpernull_Time{field: "`groups`.`finalized_at`"},
 	CountdownStartedAt:   whereHelpernull_Time{field: "`groups`.`countdown_started_at`"},
 	ScheduledCaptureTime: whereHelpernull_Time{field: "`groups`.`scheduled_capture_time`"},
+	TemplateID:           whereHelpernull_String{field: "`groups`.`template_id`"},
 	ExpiresAt:            whereHelpernull_Time{field: "`groups`.`expires_at`"},
 	CreatedAt:            whereHelpertime_Time{field: "`groups`.`created_at`"},
 	UpdatedAt:            whereHelpertime_Time{field: "`groups`.`updated_at`"},
@@ -268,8 +276,8 @@ func (r *groupR) GetUploadImages() UploadImageSlice {
 type groupL struct{}
 
 var (
-	groupAllColumns            = []string{"id", "owner_user_id", "name", "group_type", "status", "max_member", "current_member_count", "invitation_token", "finalized_at", "countdown_started_at", "scheduled_capture_time", "expires_at", "created_at", "updated_at"}
-	groupColumnsWithoutDefault = []string{"id", "owner_user_id", "name", "max_member", "invitation_token", "finalized_at", "countdown_started_at", "scheduled_capture_time", "expires_at"}
+	groupAllColumns            = []string{"id", "owner_user_id", "name", "group_type", "status", "max_member", "current_member_count", "invitation_token", "finalized_at", "countdown_started_at", "scheduled_capture_time", "template_id", "expires_at", "created_at", "updated_at"}
+	groupColumnsWithoutDefault = []string{"id", "owner_user_id", "name", "max_member", "invitation_token", "finalized_at", "countdown_started_at", "scheduled_capture_time", "template_id", "expires_at"}
 	groupColumnsWithDefault    = []string{"group_type", "status", "current_member_count", "created_at", "updated_at"}
 	groupPrimaryKeyColumns     = []string{"id"}
 	groupGeneratedColumns      = []string{}
