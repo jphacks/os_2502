@@ -184,6 +184,12 @@ func (r *Router) SetupRoutes() http.Handler {
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
+		case strings.HasSuffix(path, "/photos"):
+			if r.Method == http.MethodPost {
+				groupHandler.UploadPhoto(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
 		default:
 			// /api/groups/{id}
 			switch r.Method {

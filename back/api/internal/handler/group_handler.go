@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -506,5 +508,93 @@ func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, GroupListResponse{
 		Groups:     groupResponses,
 		TotalCount: len(groupResponses),
+	})
+}
+
+// UploadPhoto handles photo upload for a group
+func (h *GroupHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		respondError(w, http.StatusMethodNotAllowed, "メソッドが許可されていません")
+		return
+	}
+
+	// Extract group ID from URL path: /api/groups/{groupId}/photos
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "無効なURLです")
+		return
+	}
+	groupID := pathParts[3]
+
+	// Parse multipart form
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB limit
+		respondError(w, http.StatusBadRequest, "マルチパートフォームの解析に失敗しました")
+		return
+	}
+
+	// Get user_id from form
+	userID := r.FormValue("user_id")
+	if userID == "" {
+		respondError(w, http.StatusBadRequest, "user_idが必要です")
+		return
+	}
+
+	// Get frame_index from form
+	frameIndexStr := r.FormValue("frame_index")
+	if frameIndexStr == "" {
+		respondError(w, http.StatusBadRequest, "frame_indexが必要です")
+		return
+	}
+	frameIndex, err := strconv.Atoi(frameIndexStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "frame_indexが無効です")
+		return
+	}
+
+	// Get photo file
+	file, header, err := r.FormFile("photo")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "写真ファイルが必要です")
+		return
+	}
+	defer file.Close()
+
+	// Save file to storage
+	uploadDir := "/uploads/groups/" + groupID
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		respondError(w, http.StatusInternalServerError, "アップロードディレクトリの作成に失敗しました")
+		return
+	}
+
+	// Generate unique filename
+	ext := ".jpg"
+	if idx := strings.LastIndex(header.Filename, "."); idx != -1 {
+		ext = header.Filename[idx:]
+	}
+	filename := userID + "_frame" + frameIndexStr + "_" + strconv.FormatInt(time.Now().Unix(), 10) + ext
+	filepath := uploadDir + "/" + filename
+
+	// Create the file
+	dst, err := os.Create(filepath)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "ファイルの作成に失敗しました")
+		return
+	}
+	defer dst.Close()
+
+	// Copy uploaded file to destination
+	if _, err := io.Copy(dst, file); err != nil {
+		respondError(w, http.StatusInternalServerError, "ファイルの保存に失敗しました")
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"message":     "写真がアップロードされました",
+		"group_id":    groupID,
+		"user_id":     userID,
+		"frame_index": frameIndex,
+		"filename":    filename,
+		"filepath":    filepath,
+		"size":        header.Size,
 	})
 }

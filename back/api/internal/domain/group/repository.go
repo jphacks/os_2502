@@ -30,4 +30,10 @@ type Repository interface {
 
 	// CountByOwnerUserID は特定オーナーのグループ数を取得
 	CountByOwnerUserID(ctx context.Context, ownerUserID string) (int, error)
+
+	// FindByStatus はステータスでグループを検索
+	FindByStatus(ctx context.Context, status string, limit, offset int) ([]*Group, error)
+
+	// UpdateStatus はグループのステータスを更新
+	UpdateStatus(ctx context.Context, id string, status string) error
 }

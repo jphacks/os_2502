@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/aarondl/sqlboiler/v4/boil"
@@ -241,4 +242,40 @@ func (r *GroupRepositorySQLBoiler) CountByOwnerUserID(ctx context.Context, owner
 		return 0, err
 	}
 	return int(count), nil
+}
+
+func (r *GroupRepositorySQLBoiler) FindByStatus(ctx context.Context, status string, limit, offset int) ([]*group.Group, error) {
+	dbGroups, err := models.Groups(
+		qm.Where("status = ?", status),
+		qm.OrderBy("created_at DESC"),
+		qm.Limit(limit),
+		qm.Offset(offset),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]*group.Group, 0, len(dbGroups))
+	for _, dbGroup := range dbGroups {
+		g, err := toGroupEntity(dbGroup)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	return groups, nil
+}
+
+func (r *GroupRepositorySQLBoiler) UpdateStatus(ctx context.Context, id string, status string) error {
+	dbGroup, err := models.FindGroup(ctx, r.db, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return group.ErrGroupNotFound
+		}
+		return err
+	}
+
+	dbGroup.Status = status
+	_, err = dbGroup.Update(ctx, r.db, boil.Whitelist("status", "updated_at"))
+	return err
 }
