@@ -1,13 +1,19 @@
 import Foundation
-import SwiftData
 
 @Observable
 class FriendListViewModel {
     private var friends: [Friend] = []
-    private var currentUserId: UUID = UUID()
+    private var currentUserId: String = ""
+    private let friendAPI = FriendAPIService.shared
+    var isLoading: Bool = false
+    var errorMessage: String?
 
     init() {
-        loadMockData()
+        self.friends = []
+    }
+
+    func setCurrentUserId(_ userId: String) {
+        self.currentUserId = userId
     }
 
     func getFriends() -> [Friend] {
@@ -18,60 +24,125 @@ class FriendListViewModel {
         friends.filter { $0.status == .pending }
     }
 
-    func acceptFriend(_ friend: Friend) {
-        if let index = friends.firstIndex(where: { $0.id == friend.id }) {
-            friends[index].status = .accepted
-            friends[index].updatedAt = Date()
+    /// フレンド一覧を取得
+    @MainActor
+    func fetchFriends() async {
+        guard !currentUserId.isEmpty else { return }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let apiFriends = try await friendAPI.getFriends(userId: currentUserId)
+
+            // APIFriendをFriendに変換
+            let convertedFriends = apiFriends.compactMap { apiFriend in
+                Friend(from: apiFriend, currentUserId: currentUserId)
+            }
+
+            friends = convertedFriends
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = "フレンド一覧の取得に失敗しました: \(error.localizedDescription)"
+            print("Error fetching friends: \(error)")
         }
     }
 
-    func rejectFriend(_ friend: Friend) {
-        if let index = friends.firstIndex(where: { $0.id == friend.id }) {
-            let rejectedStatus: FriendStatus = .rejected
-            friends[index].status = rejectedStatus
-            friends[index].updatedAt = Date()
+    /// フレンドリクエストを承認
+    @MainActor
+    func acceptFriend(_ friend: Friend) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let updatedFriend = try await friendAPI.acceptFriendRequest(
+                requestId: friend.id,
+                userId: currentUserId
+            )
+
+            // ローカルのリストを更新
+            if let index = friends.firstIndex(where: { $0.id == friend.id }),
+                let converted = Friend(from: updatedFriend, currentUserId: currentUserId)
+            {
+                friends[index] = converted
+            }
+
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = "フレンドリクエストの承認に失敗しました: \(error.localizedDescription)"
+            print("Error accepting friend: \(error)")
         }
     }
 
-    func sendFriendRequest(to addresseeId: UUID, name: String = "新しいフレンド") {
-        let pendingStatus: FriendStatus = .pending
-        let newFriend = Friend(
-            requesterId: currentUserId, addresseeId: addresseeId, status: pendingStatus, name: name,
-            iconName: "person.circle.fill")
-        friends.append(newFriend)
+    /// フレンドリクエストを拒否
+    @MainActor
+    func rejectFriend(_ friend: Friend) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            _ = try await friendAPI.rejectFriendRequest(
+                requestId: friend.id,
+                userId: currentUserId
+            )
+
+            // ローカルのリストから削除
+            friends.removeAll { $0.id == friend.id }
+
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = "フレンドリクエストの拒否に失敗しました: \(error.localizedDescription)"
+            print("Error rejecting friend: \(error)")
+        }
     }
 
-    func addFriend(name: String, iconName: String) {
-        let addresseeId = UUID()
-        let acceptedStatus: FriendStatus = .accepted
-        let newFriend = Friend(
-            requesterId: currentUserId, addresseeId: addresseeId, status: acceptedStatus,
-            name: name, iconName: iconName)
-        friends.append(newFriend)
+    /// フレンドリクエストを送信
+    @MainActor
+    func sendFriendRequest(to addresseeId: String) async {
+        guard !currentUserId.isEmpty else { return }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let newFriend = try await friendAPI.sendFriendRequest(
+                requesterId: currentUserId,
+                addresseeId: addresseeId
+            )
+
+            // ローカルのリストに追加
+            if let converted = Friend(from: newFriend, currentUserId: currentUserId) {
+                friends.append(converted)
+            }
+
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = "フレンドリクエストの送信に失敗しました: \(error.localizedDescription)"
+            print("Error sending friend request: \(error)")
+        }
     }
 
-    func setCurrentUserId(_ userId: UUID) {
-        self.currentUserId = userId
-    }
+    /// フレンドを削除
+    @MainActor
+    func deleteFriend(_ friend: Friend) async {
+        isLoading = true
+        errorMessage = nil
 
-    private func loadMockData() {
-        let mockUser1 = UUID()
-        let mockUser2 = UUID()
-        let mockUser3 = UUID()
+        do {
+            try await friendAPI.deleteFriend(friendId: friend.id, userId: currentUserId)
 
-        let acceptedStatus: FriendStatus = .accepted
-        let pendingStatus: FriendStatus = .pending
+            // ローカルのリストから削除
+            friends.removeAll { $0.id == friend.id }
 
-        friends = [
-            Friend(
-                requesterId: currentUserId, addresseeId: mockUser1, status: acceptedStatus,
-                name: "山田太郎", iconName: "person.circle.fill"),
-            Friend(
-                requesterId: currentUserId, addresseeId: mockUser2, status: acceptedStatus,
-                name: "佐藤花子", iconName: "person.circle.fill"),
-            Friend(
-                requesterId: mockUser3, addresseeId: currentUserId, status: pendingStatus,
-                name: "鈴木一郎", iconName: "person.circle.fill"),
-        ]
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = "フレンドの削除に失敗しました: \(error.localizedDescription)"
+            print("Error deleting friend: \(error)")
+        }
     }
 }

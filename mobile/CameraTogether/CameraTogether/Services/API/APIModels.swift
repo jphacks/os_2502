@@ -137,3 +137,38 @@ struct GroupMemberListResponse: Codable {
     let members: [GroupMember]
     let count: Int
 }
+
+// MARK: - Friend Models
+
+struct APIFriend: Codable, Identifiable {
+    let id: String
+    let requesterId: String
+    let addresseeId: String
+    let status: String
+    let createdAt: String
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case requesterId = "requester_id"
+        case addresseeId = "addressee_id"
+        case status
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct SendFriendRequestRequest: Codable {
+    let addresseeId: String
+
+    enum CodingKeys: String, CodingKey {
+        case addresseeId = "addressee_id"
+    }
+}
+
+struct FriendListResponse: Codable {
+    let friends: [APIFriend]
+    let limit: Int
+    let offset: Int
+    let count: Int
+}

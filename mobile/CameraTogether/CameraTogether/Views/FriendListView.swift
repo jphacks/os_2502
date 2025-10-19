@@ -80,10 +80,14 @@ struct FriendListView: View {
                         friend: friend,
                         showActions: true,
                         onAccept: {
-                            viewModel.acceptFriend(friend)
+                            Task {
+                                await viewModel.acceptFriend(friend)
+                            }
                         },
                         onReject: {
-                            viewModel.rejectFriend(friend)
+                            Task {
+                                await viewModel.rejectFriend(friend)
+                            }
                         }
                     )
                     .padding(.horizontal, 24)
@@ -181,7 +185,10 @@ struct AddFriendView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("追加") {
-                        viewModel.addFriend(name: friendName, iconName: "person.circle.fill")
+                        // TODO: 実際のユーザーIDを取得してフレンドリクエストを送信
+                        // Task {
+                        //     await viewModel.sendFriendRequest(to: actualUserId)
+                        // }
                         dismiss()
                     }
                     .disabled(friendName.isEmpty)

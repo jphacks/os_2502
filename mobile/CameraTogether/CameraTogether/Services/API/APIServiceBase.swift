@@ -34,7 +34,9 @@ class APIServiceBase {
         }
 
         guard httpResponse.statusCode == successStatusCode else {
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
+            // エラー時のレスポンスボディをログ出力
+            throw APIError.httpError(
+                statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8))
         }
 
         return try decoder.decode(T.self, from: data)
@@ -45,14 +47,22 @@ class APIServiceBase {
         _ request: URLRequest,
         successStatusCode: Int = 200
     ) async throws {
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
         guard httpResponse.statusCode == successStatusCode else {
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
+            // エラー時のレスポンスボディをログ出力
+            if let errorBody = String(data: data, encoding: .utf8) {
+                print(
+                    "❌ API Error [\(httpResponse.statusCode)]: \(request.url?.absoluteString ?? "")"
+                )
+                print("Response: \(errorBody)")
+            }
+            throw APIError.httpError(
+                statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8))
         }
     }
 }
@@ -62,7 +72,7 @@ class APIServiceBase {
 enum APIError: LocalizedError {
     case invalidURL
     case invalidResponse
-    case httpError(statusCode: Int)
+    case httpError(statusCode: Int, message: String? = nil)
     case decodingError
 
     var errorDescription: String? {
@@ -71,8 +81,11 @@ enum APIError: LocalizedError {
             return "無効なURLです"
         case .invalidResponse:
             return "無効なレスポンスです"
-        case .httpError(let statusCode):
-            return "HTTPエラー: \(statusCode)"
+        case .httpError(let statusCode, let message):
+            if let message = message {
+                return "HTTPエラー\(statusCode): \(message)"
+            }
+            return "HTTPエラー\(statusCode)"
         case .decodingError:
             return "データの解析に失敗しました"
         }
