@@ -535,13 +535,13 @@ func (h *GroupHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract group ID from URL path: /image/groups/{groupId}/photos
+	// Extract group ID from URL path: /api/groups/{groupId}/photos
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
 		respondError(w, http.StatusBadRequest, "無効なURLです")
 		return
 	}
-	groupID := pathParts[3] // /image/groups/{groupId}/photos -> index 3 is groupId
+	groupID := pathParts[3] // /api/groups/{groupId}/photos -> index 3 is groupId
 
 	// Parse multipart form
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB limit
