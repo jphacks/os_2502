@@ -3,6 +3,7 @@ package internal
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/jphacks/os_2502/back/api/internal/handler"
 	"github.com/jphacks/os_2502/back/api/internal/infrastructure/repository"
@@ -109,7 +110,54 @@ func (r *Router) SetupRoutes() http.Handler {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
-	mux.HandleFunc("/api/groups/", groupHandler.GetGroupByID)
+	// より具体的なパスを先に登録
+	mux.HandleFunc("/api/groups/join/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			groupHandler.JoinGroup(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	// /api/groups/{id}/members
+	mux.HandleFunc("/api/groups/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		switch {
+		case strings.HasSuffix(path, "/members"):
+			if r.Method == http.MethodGet {
+				groupHandler.GetGroupMembers(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		case strings.HasSuffix(path, "/finalize"):
+			if r.Method == http.MethodPost {
+				groupHandler.FinalizeGroupMembers(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		case strings.HasSuffix(path, "/ready"):
+			if r.Method == http.MethodPost {
+				groupHandler.MarkMemberReady(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		case strings.HasSuffix(path, "/leave"):
+			if r.Method == http.MethodDelete {
+				groupHandler.LeaveGroup(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		default:
+			// /api/groups/{id}
+			switch r.Method {
+			case http.MethodGet:
+				groupHandler.GetGroupByID(w, r)
+			case http.MethodDelete:
+				groupHandler.DeleteGroup(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}
+	})
 
 	// Friend エンドポイント
 	mux.HandleFunc("/api/friends", func(w http.ResponseWriter, r *http.Request) {
