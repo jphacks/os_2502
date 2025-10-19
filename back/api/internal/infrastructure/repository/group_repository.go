@@ -214,6 +214,13 @@ func (r *GroupRepositorySQLBoiler) Update(ctx context.Context, g *group.Group) e
 		model.CountdownStartedAt.Valid = false
 	}
 
+	if scheduledCaptureTime := g.ScheduledCaptureTime(); scheduledCaptureTime != nil {
+		model.ScheduledCaptureTime.Valid = true
+		model.ScheduledCaptureTime.Time = *scheduledCaptureTime
+	} else {
+		model.ScheduledCaptureTime.Valid = false
+	}
+
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
 		model.ExpiresAt.Valid = true
 		model.ExpiresAt.Time = *expiresAt

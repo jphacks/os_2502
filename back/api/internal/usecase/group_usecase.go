@@ -168,26 +168,8 @@ func (uc *GroupUseCase) MarkMemberReady(ctx context.Context, groupID, userID str
 		return err
 	}
 
-	// 全員準備完了かチェック
-	readyCount, err := uc.memberRepo.CountReadyByGroupID(ctx, groupID)
-	if err != nil {
-		return err
-	}
-
-	g, err := uc.groupRepo.FindByID(ctx, groupID)
-	if err != nil {
-		return err
-	}
-
-	// 全員準備完了ならカウントダウン開始
-	if readyCount == g.CurrentMemberCount() && g.Status() == group.GroupStatusReadyCheck {
-		if err := g.StartCountdown(10); err != nil {
-			return err
-		}
-		if err := uc.groupRepo.Update(ctx, g); err != nil {
-			return err
-		}
-	}
+	// 全員準備完了かどうかはクライアント側で判定
+	// オーナーが撮影ボタンを押すまでカウントダウンは開始しない
 
 	return nil
 }
