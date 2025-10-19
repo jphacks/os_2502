@@ -45,9 +45,17 @@ struct CreateGroupView: View {
             Spacer()
 
             Button {
-                if let vm = viewModel {
-                    vm.createGroupLocal(type: selectedGroupType, maxMembers: maxMembers)
-                    showingWaitingRoom = true
+                Task {
+                    if let vm = viewModel {
+                        await vm.createGroup(
+                            type: selectedGroupType,
+                            name: "\(vm.currentUserName)のグループ",
+                            maxMembers: maxMembers
+                        )
+                        await MainActor.run {
+                            showingWaitingRoom = true
+                        }
+                    }
                 }
             } label: {
                 Text("グループを作成")

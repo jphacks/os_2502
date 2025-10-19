@@ -1299,7 +1299,7 @@ func testGroupsSelect(t *testing.T) {
 }
 
 var (
-	groupDBTypes = map[string]string{`ID`: `char`, `OwnerUserID`: `char`, `Name`: `varchar`, `GroupType`: `enum('local_temporary','global_temporary','permanent')`, `Status`: `enum('recruiting','ready_check','countdown','photo_taking','completed','expired')`, `MaxMember`: `int`, `CurrentMemberCount`: `int`, `InvitationToken`: `char`, `FinalizedAt`: `timestamp`, `CountdownStartedAt`: `timestamp`, `ExpiresAt`: `timestamp`, `CreatedAt`: `timestamp`, `UpdatedAt`: `timestamp`}
+	groupDBTypes = map[string]string{`ID`: `char`, `OwnerUserID`: `char`, `Name`: `varchar`, `GroupType`: `enum('local_temporary','global_temporary','permanent')`, `Status`: `enum('recruiting','ready_check','countdown','photo_taking','completed','expired')`, `MaxMember`: `int`, `CurrentMemberCount`: `int`, `InvitationToken`: `char`, `FinalizedAt`: `timestamp`, `CountdownStartedAt`: `timestamp`, `ScheduledCaptureTime`: `timestamp`, `TemplateID`: `char`, `ExpiresAt`: `timestamp`, `CreatedAt`: `timestamp`, `UpdatedAt`: `timestamp`}
 	_            = bytes.MinRead
 )
 

@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 enum FriendStatus: String, Codable {
     case pending
@@ -7,22 +6,24 @@ enum FriendStatus: String, Codable {
     case rejected
 }
 
-@Model
-class Friend {
-    var id: UUID
-    var requesterId: UUID
-    var addresseeId: UUID
+struct Friend: Identifiable, Codable {
+    let id: String
+    let requesterId: String
+    let addresseeId: String
     var status: FriendStatus
-    var createdAt: Date
+    let createdAt: Date
     var updatedAt: Date
 
-    // UI表示用の一時プロパティ（後でAPI統合時に削除予定）
+    // UI表示用のプロパティ
     var name: String
     var iconName: String
 
     init(
-        id: UUID = UUID(), requesterId: UUID, addresseeId: UUID,
-        status: FriendStatus = FriendStatus.pending, name: String = "",
+        id: String = UUID().uuidString,
+        requesterId: String,
+        addresseeId: String,
+        status: FriendStatus = .pending,
+        name: String = "",
         iconName: String = "person.circle.fill"
     ) {
         self.id = id
@@ -33,5 +34,26 @@ class Friend {
         self.updatedAt = Date()
         self.name = name
         self.iconName = iconName
+    }
+
+    /// APIFriendから変換するイニシャライザ
+    init?(from apiFriend: APIFriend, currentUserId: String, userName: String = "フレンド") {
+        guard let status = FriendStatus(rawValue: apiFriend.status) else {
+            return nil
+        }
+
+        self.id = apiFriend.id
+        self.requesterId = apiFriend.requesterId
+        self.addresseeId = apiFriend.addresseeId
+        self.status = status
+
+        // 日付の変換
+        let formatter = ISO8601DateFormatter()
+        self.createdAt = formatter.date(from: apiFriend.createdAt) ?? Date()
+        self.updatedAt = formatter.date(from: apiFriend.updatedAt) ?? Date()
+
+        // 相手のユーザー情報（現時点では名前のみ）
+        self.name = userName
+        self.iconName = "person.circle.fill"
     }
 }

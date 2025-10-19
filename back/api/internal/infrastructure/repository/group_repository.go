@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/aarondl/sqlboiler/v4/boil"
@@ -45,6 +46,16 @@ func toGroupModel(g *group.Group) *models.Group {
 		model.CountdownStartedAt.Time = *countdownStartedAt
 	}
 
+	if scheduledCaptureTime := g.ScheduledCaptureTime(); scheduledCaptureTime != nil {
+		model.ScheduledCaptureTime.Valid = true
+		model.ScheduledCaptureTime.Time = *scheduledCaptureTime
+	}
+
+	if templateID := g.TemplateID(); templateID != nil {
+		model.TemplateID.Valid = true
+		model.TemplateID.String = *templateID
+	}
+
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
 		model.ExpiresAt.Valid = true
 		model.ExpiresAt.Time = *expiresAt
@@ -67,6 +78,17 @@ func toGroupEntity(m *models.Group) (*group.Group, error) {
 		countdownStartedAt = &t
 	}
 
+	var scheduledCaptureTime *time.Time
+	if m.ScheduledCaptureTime.Valid {
+		t := m.ScheduledCaptureTime.Time
+		scheduledCaptureTime = &t
+	}
+
+	var templateID *string
+	if m.TemplateID.Valid {
+		templateID = &m.TemplateID.String
+	}
+
 	var expiresAt *time.Time
 	if m.ExpiresAt.Valid {
 		t := m.ExpiresAt.Time
@@ -84,6 +106,8 @@ func toGroupEntity(m *models.Group) (*group.Group, error) {
 		m.InvitationToken,
 		finalizedAt,
 		countdownStartedAt,
+		scheduledCaptureTime,
+		templateID,
 		expiresAt,
 		m.CreatedAt,
 		m.UpdatedAt,
@@ -201,6 +225,13 @@ func (r *GroupRepositorySQLBoiler) Update(ctx context.Context, g *group.Group) e
 		model.CountdownStartedAt.Valid = false
 	}
 
+	if scheduledCaptureTime := g.ScheduledCaptureTime(); scheduledCaptureTime != nil {
+		model.ScheduledCaptureTime.Valid = true
+		model.ScheduledCaptureTime.Time = *scheduledCaptureTime
+	} else {
+		model.ScheduledCaptureTime.Valid = false
+	}
+
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
 		model.ExpiresAt.Valid = true
 		model.ExpiresAt.Time = *expiresAt
@@ -241,4 +272,40 @@ func (r *GroupRepositorySQLBoiler) CountByOwnerUserID(ctx context.Context, owner
 		return 0, err
 	}
 	return int(count), nil
+}
+
+func (r *GroupRepositorySQLBoiler) FindByStatus(ctx context.Context, status string, limit, offset int) ([]*group.Group, error) {
+	dbGroups, err := models.Groups(
+		qm.Where("status = ?", status),
+		qm.OrderBy("created_at DESC"),
+		qm.Limit(limit),
+		qm.Offset(offset),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]*group.Group, 0, len(dbGroups))
+	for _, dbGroup := range dbGroups {
+		g, err := toGroupEntity(dbGroup)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	return groups, nil
+}
+
+func (r *GroupRepositorySQLBoiler) UpdateStatus(ctx context.Context, id string, status string) error {
+	dbGroup, err := models.FindGroup(ctx, r.db, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return group.ErrGroupNotFound
+		}
+		return err
+	}
+
+	dbGroup.Status = status
+	_, err = dbGroup.Update(ctx, r.db, boil.Whitelist("status", "updated_at"))
+	return err
 }

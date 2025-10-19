@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(router);
 
-app.use("/upload", collageRouters);
+app.use("/", collageRouters);
 
 // 接続確認用
 console.log("Hello World!!!");

@@ -50,6 +50,18 @@ struct AppColors {
         colorScheme == .dark ? 0.2 : 0.7
     }
 
+    var backgroundTop: Color {
+        colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.2) : Color.blue.opacity(0.3)
+    }
+
+    var backgroundMiddle: Color {
+        colorScheme == .dark ? Color(red: 0.15, green: 0.1, blue: 0.25) : Color.purple.opacity(0.3)
+    }
+
+    var backgroundBottom: Color {
+        colorScheme == .dark ? Color(red: 0.2, green: 0.1, blue: 0.3) : Color.pink.opacity(0.2)
+    }
+
     var backgroundGradient: some View {
         Group {
             if colorScheme == .dark {

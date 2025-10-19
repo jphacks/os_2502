@@ -37,7 +37,7 @@ class AuthenticationManager {
         } catch {
             // 409エラー（既に存在）の場合は既存ユーザーを取得
             if let apiError = error as? APIError,
-                case .httpError(let statusCode) = apiError,
+                case .httpError(let statusCode, _) = apiError,
                 statusCode == 409
             {
                 do {

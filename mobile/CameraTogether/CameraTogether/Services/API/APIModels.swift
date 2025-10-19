@@ -40,6 +40,8 @@ struct APIGroup: Codable, Identifiable {
     let invitationToken: String
     let finalizedAt: String?
     let countdownStartedAt: String?
+    let scheduledCaptureTime: String?
+    let templateId: String?
     let expiresAt: String?
     let createdAt: String
     let updatedAt: String
@@ -55,6 +57,8 @@ struct APIGroup: Codable, Identifiable {
         case invitationToken = "invitation_token"
         case finalizedAt = "finalized_at"
         case countdownStartedAt = "countdown_started_at"
+        case scheduledCaptureTime = "scheduled_capture_time"
+        case templateId = "template_id"
         case expiresAt = "expires_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -135,5 +139,40 @@ struct GroupMember: Codable, Identifiable {
 
 struct GroupMemberListResponse: Codable {
     let members: [GroupMember]
+    let count: Int
+}
+
+// MARK: - Friend Models
+
+struct APIFriend: Codable, Identifiable {
+    let id: String
+    let requesterId: String
+    let addresseeId: String
+    let status: String
+    let createdAt: String
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case requesterId = "requester_id"
+        case addresseeId = "addressee_id"
+        case status
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct SendFriendRequestRequest: Codable {
+    let addresseeId: String
+
+    enum CodingKeys: String, CodingKey {
+        case addresseeId = "addressee_id"
+    }
+}
+
+struct FriendListResponse: Codable {
+    let friends: [APIFriend]
+    let limit: Int
+    let offset: Int
     let count: Int
 }

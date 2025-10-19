@@ -80,10 +80,14 @@ struct FriendListView: View {
                         friend: friend,
                         showActions: true,
                         onAccept: {
-                            viewModel.acceptFriend(friend)
+                            Task {
+                                await viewModel.acceptFriend(friend)
+                            }
                         },
                         onReject: {
-                            viewModel.rejectFriend(friend)
+                            Task {
+                                await viewModel.rejectFriend(friend)
+                            }
                         }
                     )
                     .padding(.horizontal, 24)
@@ -161,14 +165,57 @@ struct FriendListView: View {
 
 struct AddFriendView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var friendName = ""
+    @State private var searchQuery = ""
+    @State private var searchResults: [User] = []
+    @State private var isSearching = false
+    @State private var errorMessage: String?
     var viewModel: FriendListViewModel
+
+    private let userAPI = UserAPIService.shared
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("フレンド名", text: $friendName)
+            VStack {
+                if isSearching {
+                    ProgressView()
+                        .padding()
+                } else if let error = errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .padding()
+                } else if !searchResults.isEmpty {
+                    List(searchResults, id: \.id) { user in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(user.name)
+                                    .font(.headline)
+                                if let username = user.username {
+                                    Text("@\(username)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Button("追加") {
+                                Task {
+                                    await sendFriendRequest(to: user.id)
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                } else if !searchQuery.isEmpty {
+                    ContentUnavailableView(
+                        "ユーザーが見つかりません",
+                        systemImage: "person.crop.circle.badge.questionmark",
+                        description: Text("別のユーザー名で検索してください")
+                    )
+                }
+            }
+            .searchable(text: $searchQuery, prompt: "ユーザー名で検索")
+            .onChange(of: searchQuery) { _, newValue in
+                Task {
+                    await performSearch(query: newValue)
                 }
             }
             .navigationTitle("フレンドを追加")
@@ -179,14 +226,52 @@ struct AddFriendView: View {
                         dismiss()
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("追加") {
-                        viewModel.addFriend(name: friendName, iconName: "person.circle.fill")
-                        dismiss()
-                    }
-                    .disabled(friendName.isEmpty)
-                }
             }
+        }
+    }
+
+    private func performSearch(query: String) async {
+        guard !query.isEmpty else {
+            await MainActor.run {
+                searchResults = []
+                errorMessage = nil
+            }
+            return
+        }
+
+        // 3文字未満はスキップ
+        guard query.count >= 3 else {
+            await MainActor.run {
+                searchResults = []
+                errorMessage = "3文字以上入力してください"
+            }
+            return
+        }
+
+        await MainActor.run {
+            isSearching = true
+            errorMessage = nil
+        }
+
+        do {
+            let results = try await userAPI.searchUsers(query: query)
+            await MainActor.run {
+                searchResults = results
+                isSearching = false
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "検索に失敗しました: \(error.localizedDescription)"
+                searchResults = []
+                isSearching = false
+            }
+        }
+    }
+
+    private func sendFriendRequest(to userId: String) async {
+        await viewModel.sendFriendRequest(to: userId)
+        await MainActor.run {
+            dismiss()
         }
     }
 }

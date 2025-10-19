@@ -168,26 +168,8 @@ func (uc *GroupUseCase) MarkMemberReady(ctx context.Context, groupID, userID str
 		return err
 	}
 
-	// 全員準備完了かチェック
-	readyCount, err := uc.memberRepo.CountReadyByGroupID(ctx, groupID)
-	if err != nil {
-		return err
-	}
-
-	g, err := uc.groupRepo.FindByID(ctx, groupID)
-	if err != nil {
-		return err
-	}
-
-	// 全員準備完了ならカウントダウン開始
-	if readyCount == g.CurrentMemberCount() && g.Status() == group.GroupStatusReadyCheck {
-		if err := g.StartCountdown(); err != nil {
-			return err
-		}
-		if err := uc.groupRepo.Update(ctx, g); err != nil {
-			return err
-		}
-	}
+	// 全員準備完了かどうかはクライアント側で判定
+	// オーナーが撮影ボタンを押すまでカウントダウンは開始しない
 
 	return nil
 }
@@ -195,6 +177,31 @@ func (uc *GroupUseCase) MarkMemberReady(ctx context.Context, groupID, userID str
 // GetGroupMembers retrieves all members of a group
 func (uc *GroupUseCase) GetGroupMembers(ctx context.Context, groupID string) ([]*group_member.GroupMember, error) {
 	return uc.memberRepo.FindByGroupID(ctx, groupID)
+}
+
+// StartCountdown starts the countdown for photo session
+func (uc *GroupUseCase) StartCountdown(ctx context.Context, groupID, userID, templateID string) (*group.Group, error) {
+	g, err := uc.groupRepo.FindByID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	// オーナーチェック
+	if g.OwnerUserID() != userID {
+		return nil, group.ErrInvalidOwnerUserID
+	}
+
+	// カウントダウン開始（10秒後に撮影）
+	if err := g.StartCountdown(10, templateID); err != nil {
+		return nil, err
+	}
+
+	// 更新
+	if err := uc.groupRepo.Update(ctx, g); err != nil {
+		return nil, err
+	}
+
+	return g, nil
 }
 
 // LeaveGroup allows a member to leave a group

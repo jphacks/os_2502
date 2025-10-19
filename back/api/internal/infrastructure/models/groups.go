@@ -44,6 +44,10 @@ type Group struct {
 	FinalizedAt null.Time `boil:"finalized_at" json:"finalized_at,omitempty" toml:"finalized_at" yaml:"finalized_at,omitempty"`
 	// ã‚«ã‚¦ãƒ³ãƒˆãƒ€ã‚¦ãƒ³é–‹å§‹æ™‚åˆ»
 	CountdownStartedAt null.Time `boil:"countdown_started_at" json:"countdown_started_at,omitempty" toml:"countdown_started_at" yaml:"countdown_started_at,omitempty"`
+	// äºˆå®šæ’®å½±æ™‚åˆ»ï¼ˆå…¨ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆåŒæœŸç”¨ï¼‰
+	ScheduledCaptureTime null.Time `boil:"scheduled_capture_time" json:"scheduled_capture_time,omitempty" toml:"scheduled_capture_time" yaml:"scheduled_capture_time,omitempty"`
+	// é¸æŠžã•ã‚ŒãŸãƒ†ãƒ³ãƒ—ãƒ¬ãƒ¼ãƒˆID
+	TemplateID null.String `boil:"template_id" json:"template_id,omitempty" toml:"template_id" yaml:"template_id,omitempty"`
 	// æœ‰åŠ¹æœŸé™ï¼ˆä¸€æ™‚ã‚°ãƒ«ãƒ¼ãƒ—ç”¨ï¼‰
 	ExpiresAt null.Time `boil:"expires_at" json:"expires_at,omitempty" toml:"expires_at" yaml:"expires_at,omitempty"`
 	// ä½œæˆæ—¥æ™‚
@@ -56,95 +60,107 @@ type Group struct {
 }
 
 var GroupColumns = struct {
-	ID                 string
-	OwnerUserID        string
-	Name               string
-	GroupType          string
-	Status             string
-	MaxMember          string
-	CurrentMemberCount string
-	InvitationToken    string
-	FinalizedAt        string
-	CountdownStartedAt string
-	ExpiresAt          string
-	CreatedAt          string
-	UpdatedAt          string
+	ID                   string
+	OwnerUserID          string
+	Name                 string
+	GroupType            string
+	Status               string
+	MaxMember            string
+	CurrentMemberCount   string
+	InvitationToken      string
+	FinalizedAt          string
+	CountdownStartedAt   string
+	ScheduledCaptureTime string
+	TemplateID           string
+	ExpiresAt            string
+	CreatedAt            string
+	UpdatedAt            string
 }{
-	ID:                 "id",
-	OwnerUserID:        "owner_user_id",
-	Name:               "name",
-	GroupType:          "group_type",
-	Status:             "status",
-	MaxMember:          "max_member",
-	CurrentMemberCount: "current_member_count",
-	InvitationToken:    "invitation_token",
-	FinalizedAt:        "finalized_at",
-	CountdownStartedAt: "countdown_started_at",
-	ExpiresAt:          "expires_at",
-	CreatedAt:          "created_at",
-	UpdatedAt:          "updated_at",
+	ID:                   "id",
+	OwnerUserID:          "owner_user_id",
+	Name:                 "name",
+	GroupType:            "group_type",
+	Status:               "status",
+	MaxMember:            "max_member",
+	CurrentMemberCount:   "current_member_count",
+	InvitationToken:      "invitation_token",
+	FinalizedAt:          "finalized_at",
+	CountdownStartedAt:   "countdown_started_at",
+	ScheduledCaptureTime: "scheduled_capture_time",
+	TemplateID:           "template_id",
+	ExpiresAt:            "expires_at",
+	CreatedAt:            "created_at",
+	UpdatedAt:            "updated_at",
 }
 
 var GroupTableColumns = struct {
-	ID                 string
-	OwnerUserID        string
-	Name               string
-	GroupType          string
-	Status             string
-	MaxMember          string
-	CurrentMemberCount string
-	InvitationToken    string
-	FinalizedAt        string
-	CountdownStartedAt string
-	ExpiresAt          string
-	CreatedAt          string
-	UpdatedAt          string
+	ID                   string
+	OwnerUserID          string
+	Name                 string
+	GroupType            string
+	Status               string
+	MaxMember            string
+	CurrentMemberCount   string
+	InvitationToken      string
+	FinalizedAt          string
+	CountdownStartedAt   string
+	ScheduledCaptureTime string
+	TemplateID           string
+	ExpiresAt            string
+	CreatedAt            string
+	UpdatedAt            string
 }{
-	ID:                 "groups.id",
-	OwnerUserID:        "groups.owner_user_id",
-	Name:               "groups.name",
-	GroupType:          "groups.group_type",
-	Status:             "groups.status",
-	MaxMember:          "groups.max_member",
-	CurrentMemberCount: "groups.current_member_count",
-	InvitationToken:    "groups.invitation_token",
-	FinalizedAt:        "groups.finalized_at",
-	CountdownStartedAt: "groups.countdown_started_at",
-	ExpiresAt:          "groups.expires_at",
-	CreatedAt:          "groups.created_at",
-	UpdatedAt:          "groups.updated_at",
+	ID:                   "groups.id",
+	OwnerUserID:          "groups.owner_user_id",
+	Name:                 "groups.name",
+	GroupType:            "groups.group_type",
+	Status:               "groups.status",
+	MaxMember:            "groups.max_member",
+	CurrentMemberCount:   "groups.current_member_count",
+	InvitationToken:      "groups.invitation_token",
+	FinalizedAt:          "groups.finalized_at",
+	CountdownStartedAt:   "groups.countdown_started_at",
+	ScheduledCaptureTime: "groups.scheduled_capture_time",
+	TemplateID:           "groups.template_id",
+	ExpiresAt:            "groups.expires_at",
+	CreatedAt:            "groups.created_at",
+	UpdatedAt:            "groups.updated_at",
 }
 
 // Generated where
 
 var GroupWhere = struct {
-	ID                 whereHelperstring
-	OwnerUserID        whereHelperstring
-	Name               whereHelperstring
-	GroupType          whereHelperstring
-	Status             whereHelperstring
-	MaxMember          whereHelperint
-	CurrentMemberCount whereHelperint
-	InvitationToken    whereHelperstring
-	FinalizedAt        whereHelpernull_Time
-	CountdownStartedAt whereHelpernull_Time
-	ExpiresAt          whereHelpernull_Time
-	CreatedAt          whereHelpertime_Time
-	UpdatedAt          whereHelpertime_Time
+	ID                   whereHelperstring
+	OwnerUserID          whereHelperstring
+	Name                 whereHelperstring
+	GroupType            whereHelperstring
+	Status               whereHelperstring
+	MaxMember            whereHelperint
+	CurrentMemberCount   whereHelperint
+	InvitationToken      whereHelperstring
+	FinalizedAt          whereHelpernull_Time
+	CountdownStartedAt   whereHelpernull_Time
+	ScheduledCaptureTime whereHelpernull_Time
+	TemplateID           whereHelpernull_String
+	ExpiresAt            whereHelpernull_Time
+	CreatedAt            whereHelpertime_Time
+	UpdatedAt            whereHelpertime_Time
 }{
-	ID:                 whereHelperstring{field: "`groups`.`id`"},
-	OwnerUserID:        whereHelperstring{field: "`groups`.`owner_user_id`"},
-	Name:               whereHelperstring{field: "`groups`.`name`"},
-	GroupType:          whereHelperstring{field: "`groups`.`group_type`"},
-	Status:             whereHelperstring{field: "`groups`.`status`"},
-	MaxMember:          whereHelperint{field: "`groups`.`max_member`"},
-	CurrentMemberCount: whereHelperint{field: "`groups`.`current_member_count`"},
-	InvitationToken:    whereHelperstring{field: "`groups`.`invitation_token`"},
-	FinalizedAt:        whereHelpernull_Time{field: "`groups`.`finalized_at`"},
-	CountdownStartedAt: whereHelpernull_Time{field: "`groups`.`countdown_started_at`"},
-	ExpiresAt:          whereHelpernull_Time{field: "`groups`.`expires_at`"},
-	CreatedAt:          whereHelpertime_Time{field: "`groups`.`created_at`"},
-	UpdatedAt:          whereHelpertime_Time{field: "`groups`.`updated_at`"},
+	ID:                   whereHelperstring{field: "`groups`.`id`"},
+	OwnerUserID:          whereHelperstring{field: "`groups`.`owner_user_id`"},
+	Name:                 whereHelperstring{field: "`groups`.`name`"},
+	GroupType:            whereHelperstring{field: "`groups`.`group_type`"},
+	Status:               whereHelperstring{field: "`groups`.`status`"},
+	MaxMember:            whereHelperint{field: "`groups`.`max_member`"},
+	CurrentMemberCount:   whereHelperint{field: "`groups`.`current_member_count`"},
+	InvitationToken:      whereHelperstring{field: "`groups`.`invitation_token`"},
+	FinalizedAt:          whereHelpernull_Time{field: "`groups`.`finalized_at`"},
+	CountdownStartedAt:   whereHelpernull_Time{field: "`groups`.`countdown_started_at`"},
+	ScheduledCaptureTime: whereHelpernull_Time{field: "`groups`.`scheduled_capture_time`"},
+	TemplateID:           whereHelpernull_String{field: "`groups`.`template_id`"},
+	ExpiresAt:            whereHelpernull_Time{field: "`groups`.`expires_at`"},
+	CreatedAt:            whereHelpertime_Time{field: "`groups`.`created_at`"},
+	UpdatedAt:            whereHelpertime_Time{field: "`groups`.`updated_at`"},
 }
 
 // GroupRels is where relationship names are stored.
@@ -260,8 +276,8 @@ func (r *groupR) GetUploadImages() UploadImageSlice {
 type groupL struct{}
 
 var (
-	groupAllColumns            = []string{"id", "owner_user_id", "name", "group_type", "status", "max_member", "current_member_count", "invitation_token", "finalized_at", "countdown_started_at", "expires_at", "created_at", "updated_at"}
-	groupColumnsWithoutDefault = []string{"id", "owner_user_id", "name", "max_member", "invitation_token", "finalized_at", "countdown_started_at", "expires_at"}
+	groupAllColumns            = []string{"id", "owner_user_id", "name", "group_type", "status", "max_member", "current_member_count", "invitation_token", "finalized_at", "countdown_started_at", "scheduled_capture_time", "template_id", "expires_at", "created_at", "updated_at"}
+	groupColumnsWithoutDefault = []string{"id", "owner_user_id", "name", "max_member", "invitation_token", "finalized_at", "countdown_started_at", "scheduled_capture_time", "template_id", "expires_at"}
 	groupColumnsWithDefault    = []string{"group_type", "status", "current_member_count", "created_at", "updated_at"}
 	groupPrimaryKeyColumns     = []string{"id"}
 	groupGeneratedColumns      = []string{}

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -42,19 +44,21 @@ type MarkReadyRequest struct {
 }
 
 type GroupResponse struct {
-	ID                 string  `json:"id"`
-	OwnerUserID        string  `json:"owner_user_id"`
-	Name               string  `json:"name"`
-	GroupType          string  `json:"group_type"`
-	Status             string  `json:"status"`
-	MaxMember          int     `json:"max_member"`
-	CurrentMemberCount int     `json:"current_member_count"`
-	InvitationToken    string  `json:"invitation_token"`
-	FinalizedAt        *string `json:"finalized_at,omitempty"`
-	CountdownStartedAt *string `json:"countdown_started_at,omitempty"`
-	ExpiresAt          *string `json:"expires_at,omitempty"`
-	CreatedAt          string  `json:"created_at"`
-	UpdatedAt          string  `json:"updated_at"`
+	ID                   string  `json:"id"`
+	OwnerUserID          string  `json:"owner_user_id"`
+	Name                 string  `json:"name"`
+	GroupType            string  `json:"group_type"`
+	Status               string  `json:"status"`
+	MaxMember            int     `json:"max_member"`
+	CurrentMemberCount   int     `json:"current_member_count"`
+	InvitationToken      string  `json:"invitation_token"`
+	FinalizedAt          *string `json:"finalized_at,omitempty"`
+	CountdownStartedAt   *string `json:"countdown_started_at,omitempty"`
+	ScheduledCaptureTime *string `json:"scheduled_capture_time,omitempty"`
+	TemplateID           *string `json:"template_id,omitempty"`
+	ExpiresAt            *string `json:"expires_at,omitempty"`
+	CreatedAt            string  `json:"created_at"`
+	UpdatedAt            string  `json:"updated_at"`
 }
 
 type GroupMemberResponse struct {
@@ -96,6 +100,15 @@ func toGroupResponse(g *group.Group) GroupResponse {
 	if countdownStartedAt := g.CountdownStartedAt(); countdownStartedAt != nil {
 		str := countdownStartedAt.Format(time.RFC3339)
 		resp.CountdownStartedAt = &str
+	}
+
+	if scheduledCaptureTime := g.ScheduledCaptureTime(); scheduledCaptureTime != nil {
+		str := scheduledCaptureTime.Format(time.RFC3339)
+		resp.ScheduledCaptureTime = &str
+	}
+
+	if templateID := g.TemplateID(); templateID != nil {
+		resp.TemplateID = templateID
 	}
 
 	if expiresAt := g.ExpiresAt(); expiresAt != nil {
@@ -436,6 +449,53 @@ func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"message": "グループを削除しました"})
 }
 
+// StartCountdown starts the countdown for photo session
+func (h *GroupHandler) StartCountdown(w http.ResponseWriter, r *http.Request) {
+	groupID := strings.TrimPrefix(r.URL.Path, "/api/groups/")
+	groupID = strings.TrimSuffix(groupID, "/start-countdown")
+
+	if groupID == "" {
+		respondError(w, http.StatusBadRequest, "グループIDが必要です")
+		return
+	}
+
+	var req struct {
+		UserID     string `json:"user_id"`
+		TemplateID string `json:"template_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "リクエストボディが無効です")
+		return
+	}
+
+	if req.UserID == "" {
+		respondError(w, http.StatusBadRequest, "ユーザーIDが必要です")
+		return
+	}
+
+	if req.TemplateID == "" {
+		respondError(w, http.StatusBadRequest, "テンプレートIDが必要です")
+		return
+	}
+
+	g, err := h.useCase.StartCountdown(r.Context(), groupID, req.UserID, req.TemplateID)
+	if err != nil {
+		switch err {
+		case group.ErrGroupNotFound:
+			respondError(w, http.StatusNotFound, err.Error())
+		case group.ErrInvalidOwnerUserID:
+			respondError(w, http.StatusForbidden, "オーナーのみ撮影開始できます")
+		case group.ErrGroupNotReadyCheck:
+			respondError(w, http.StatusBadRequest, "全員の準備が完了していません")
+		default:
+			respondError(w, http.StatusInternalServerError, "カウントダウンの開始に失敗しました")
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, toGroupResponse(g))
+}
+
 // ListGroups retrieves all groups, optionally filtered by owner_user_id
 func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -466,4 +526,136 @@ func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request) {
 		Groups:     groupResponses,
 		TotalCount: len(groupResponses),
 	})
+}
+
+// UploadPhoto handles photo upload for a group
+func (h *GroupHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		respondError(w, http.StatusMethodNotAllowed, "メソッドが許可されていません")
+		return
+	}
+
+	// Extract group ID from URL path: /api/groups/{groupId}/photos
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "無効なURLです")
+		return
+	}
+	groupID := pathParts[3] // /api/groups/{groupId}/photos -> index 3 is groupId
+
+	// Parse multipart form
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB limit
+		respondError(w, http.StatusBadRequest, "マルチパートフォームの解析に失敗しました")
+		return
+	}
+
+	// Get user_id from form
+	userID := r.FormValue("user_id")
+	if userID == "" {
+		respondError(w, http.StatusBadRequest, "user_idが必要です")
+		return
+	}
+
+	// Get frame_index from form
+	frameIndexStr := r.FormValue("frame_index")
+	if frameIndexStr == "" {
+		respondError(w, http.StatusBadRequest, "frame_indexが必要です")
+		return
+	}
+	frameIndex, err := strconv.Atoi(frameIndexStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "frame_indexが無効です")
+		return
+	}
+
+	// Get photo file
+	file, header, err := r.FormFile("photo")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "写真ファイルが必要です")
+		return
+	}
+	defer file.Close()
+
+	// Save file to storage
+	uploadDir := "/uploads/groups/" + groupID
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		respondError(w, http.StatusInternalServerError, "アップロードディレクトリの作成に失敗しました")
+		return
+	}
+
+	// Generate unique filename
+	ext := ".jpg"
+	if idx := strings.LastIndex(header.Filename, "."); idx != -1 {
+		ext = header.Filename[idx:]
+	}
+	filename := userID + "_frame" + frameIndexStr + "_" + strconv.FormatInt(time.Now().Unix(), 10) + ext
+	filepath := uploadDir + "/" + filename
+
+	// Create the file
+	dst, err := os.Create(filepath)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "ファイルの作成に失敗しました")
+		return
+	}
+	defer dst.Close()
+
+	// Copy uploaded file to destination
+	if _, err := io.Copy(dst, file); err != nil {
+		respondError(w, http.StatusInternalServerError, "ファイルの保存に失敗しました")
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"message":     "写真がアップロードされました",
+		"group_id":    groupID,
+		"user_id":     userID,
+		"frame_index": frameIndex,
+		"filename":    filename,
+		"filepath":    filepath,
+		"size":        header.Size,
+	})
+}
+
+// GetCollageImage グループIDでコラージュ画像を取得
+func (h *GroupHandler) GetCollageImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		respondError(w, http.StatusMethodNotAllowed, "メソッドが許可されていません")
+		return
+	}
+
+	// URLからグループIDを取得
+	groupID := strings.TrimPrefix(r.URL.Path, "/api/groups/")
+	groupID = strings.TrimSuffix(groupID, "/collage")
+
+	if groupID == "" {
+		respondError(w, http.StatusBadRequest, "グループIDが必要です")
+		return
+	}
+
+	// コラージュ画像のパス
+	collagePath := "/uploads/collages/" + groupID + "_collage.jpg"
+
+	// ファイルの存在確認
+	if _, err := os.Stat(collagePath); os.IsNotExist(err) {
+		respondError(w, http.StatusNotFound, "コラージュ画像が見つかりません")
+		return
+	}
+
+	// ファイルを開く
+	file, err := os.Open(collagePath)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "コラージュ画像の読み込みに失敗しました")
+		return
+	}
+	defer file.Close()
+
+	// ヘッダーを設定
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Disposition", "inline; filename="+groupID+"_collage.jpg")
+
+	// ファイルをレスポンスに書き込み
+	if _, err := io.Copy(w, file); err != nil {
+		// エラーが発生してもヘッダーは既に送信されている可能性があるため、ログのみ
+		println("Error writing collage image:", err.Error())
+	}
 }

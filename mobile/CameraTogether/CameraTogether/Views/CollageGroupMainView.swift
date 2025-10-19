@@ -23,8 +23,14 @@ struct CollageGroupMainView: View {
                     .padding(.top, 20)
                     .padding(.horizontal, 24)
 
-                // 空の状態セクション（常に表示）
-                emptyStateSection
+                // 参加中のグループがあれば表示
+                if let group = collageGroupViewModel?.currentGroup {
+                    currentGroupSection(group: group)
+                        .padding(.horizontal, 24)
+                } else {
+                    // 空の状態セクション
+                    emptyStateSection
+                }
 
                 Spacer()
 
@@ -76,6 +82,55 @@ struct CollageGroupMainView: View {
                 }
                 Spacer()
             }
+        }
+    }
+
+    // 参加中のグループセクション
+    private func currentGroupSection(group: CollageGroup) -> some View {
+        VStack(spacing: 16) {
+            Text("参加中のグループ")
+                .font(.headline)
+                .foregroundColor(appColors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                showWaitingRoom = true
+            } label: {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(groupTypeDisplayName(type: group.type))
+                            .font(.subheadline)
+                            .foregroundColor(appColors.textSecondary)
+                        Text("\(group.members.count)人参加中")
+                            .font(.caption)
+                            .foregroundColor(appColors.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(appColors.textSecondary)
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.1))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
+            }
+        }
+        .padding(.top, 20)
+    }
+
+    private func groupTypeDisplayName(type: GroupType) -> String {
+        switch type {
+        case .temporaryLocal:
+            return "ローカルグループ"
+        case .temporaryGlobal:
+            return "グローバルグループ"
+        case .fixed:
+            return "固定グループ"
         }
     }
 

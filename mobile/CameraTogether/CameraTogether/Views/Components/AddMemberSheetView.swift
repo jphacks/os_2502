@@ -31,40 +31,40 @@ struct AddMemberSheetView: View {
                 .padding(.top, 20)
 
                 VStack(spacing: 12) {
-                    if groupType == .temporaryLocal {
-                        Button {
-                            onShowQR()
-                        } label: {
-                            HStack(spacing: 12) {
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [.blue.opacity(0.6), .cyan.opacity(0.4)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
+                    // QRコード表示ボタン（ローカル・グローバル共通）
+                    Button {
+                        onShowQR()
+                    } label: {
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.blue.opacity(0.6), .cyan.opacity(0.4)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
                                         )
-                                        .frame(width: 40, height: 40)
+                                    )
+                                    .frame(width: 40, height: 40)
 
-                                    Image(systemName: "qrcode")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(.white)
-                                }
-
-                                Text("QRコード表示")
-                                    .font(.headline)
-                                    .foregroundColor(appColors.textPrimary)
-
-                                Spacer()
+                                Image(systemName: "qrcode")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
                             }
-                            .padding(16)
-                            .glassMorphism(
-                                cornerRadius: 16, opacity: colorScheme == .dark ? 0.2 : 0.7)
-                        }
-                        .buttonStyle(.plain)
-                    }
 
+                            Text("QRコード表示")
+                                .font(.headline)
+                                .foregroundColor(appColors.textPrimary)
+
+                            Spacer()
+                        }
+                        .padding(16)
+                        .glassMorphism(
+                            cornerRadius: 16, opacity: colorScheme == .dark ? 0.2 : 0.7)
+                    }
+                    .buttonStyle(.plain)
+
+                    // フレンド選択ボタン
                     Button {
                         onFriendSelect()
                     } label: {

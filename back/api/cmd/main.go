@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jphacks/os_2502/back/api/config"
 	"github.com/jphacks/os_2502/back/api/internal"
 	"github.com/jphacks/os_2502/back/api/internal/db"
+	"github.com/jphacks/os_2502/back/api/internal/infrastructure/repository"
+	"github.com/jphacks/os_2502/back/api/internal/worker"
 )
 
 func main() {
@@ -34,6 +38,16 @@ func main() {
 	router := internal.NewRouter(database)
 	handler := router.SetupRoutes()
 
+	// コラージュ生成ワーカーを起動
+	groupRepo := repository.NewGroupRepositorySQLBoiler(database)
+	groupMemberRepo := repository.NewGroupMemberRepositorySQLBoiler(database)
+	collageGenerator := worker.NewCollageGenerator(groupRepo, groupMemberRepo, 10*time.Second)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go collageGenerator.Start(ctx)
+
 	// サーバーを起動
 	go func() {
 		log.Println("Starting server on :8080")
@@ -51,6 +65,7 @@ func main() {
 	<-quit
 
 	log.Println("サーバーをシャットダウン中...")
+	cancel() // ワーカーを停止
 
 	log.Println("シャットダウン完了")
 }
