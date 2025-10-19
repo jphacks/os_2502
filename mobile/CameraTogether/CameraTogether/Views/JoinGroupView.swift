@@ -8,6 +8,8 @@ struct JoinGroupView: View {
     @State private var errorMessage = ""
     @State private var showingWaitingRoom = false
     @State private var showingQRScanner = false
+    @State private var isJoining = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 30) {
@@ -58,18 +60,26 @@ struct JoinGroupView: View {
             Spacer()
 
             Button {
-                joinGroup()
+                Task {
+                    await joinGroup()
+                }
             } label: {
-                Text("参加する")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(inviteCode.isEmpty ? Color.gray : Color.blue)
-                    .cornerRadius(12)
+                HStack {
+                    if isJoining {
+                        ProgressView()
+                            .tint(.white)
+                    }
+                    Text(isJoining ? "参加中..." : "参加する")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(inviteCode.isEmpty || isJoining ? Color.gray : Color.blue)
+                .cornerRadius(12)
             }
-            .disabled(inviteCode.isEmpty)
+            .disabled(inviteCode.isEmpty || isJoining)
         }
         .padding()
         .alert("エラー", isPresented: $showingError) {
@@ -90,6 +100,19 @@ struct JoinGroupView: View {
                 showingQRScanner = false
             }
         }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    HStack {
+                        Image(systemName: "xmark")
+                        Text("閉じる")
+                    }
+                }
+            }
+        }
         .onAppear {
             if viewModel == nil {
                 viewModel = CollageGroupViewModel(authManager: authManager)
@@ -97,16 +120,21 @@ struct JoinGroupView: View {
         }
     }
 
-    private func joinGroup() {
+    private func joinGroup() async {
         guard let vm = viewModel else { return }
-        // 実際のアプリでは、ここでサーバーに招待コードを送信してグループ情報を取得
-        // デモとして、ダミーのグループを作成
-        vm.createGroupLocal(type: .temporaryGlobal, maxMembers: 10)
+        guard !inviteCode.isEmpty else { return }
 
-        if vm.currentGroup != nil {
+        isJoining = true
+
+        // APIでグループに参加
+        let success = await vm.joinGroupWithAPI(invitationToken: inviteCode)
+
+        isJoining = false
+
+        if success {
             showingWaitingRoom = true
         } else {
-            errorMessage = "招待コードが無効です"
+            errorMessage = vm.errorMessage ?? "グループへの参加に失敗しました"
             showingError = true
         }
     }
