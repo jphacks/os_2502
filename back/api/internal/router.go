@@ -190,6 +190,12 @@ func (r *Router) SetupRoutes() http.Handler {
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
+		case strings.HasSuffix(path, "/collage"):
+			if r.Method == http.MethodGet {
+				groupHandler.GetCollageImage(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
 		default:
 			// /api/groups/{id}
 			switch r.Method {
