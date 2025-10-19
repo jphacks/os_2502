@@ -197,6 +197,31 @@ func (uc *GroupUseCase) GetGroupMembers(ctx context.Context, groupID string) ([]
 	return uc.memberRepo.FindByGroupID(ctx, groupID)
 }
 
+// StartCountdown starts the countdown for photo session
+func (uc *GroupUseCase) StartCountdown(ctx context.Context, groupID, userID string) (*group.Group, error) {
+	g, err := uc.groupRepo.FindByID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	// オーナーチェック
+	if g.OwnerUserID() != userID {
+		return nil, group.ErrInvalidOwnerUserID
+	}
+
+	// カウントダウン開始
+	if err := g.StartCountdown(); err != nil {
+		return nil, err
+	}
+
+	// 更新
+	if err := uc.groupRepo.Update(ctx, g); err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
 // LeaveGroup allows a member to leave a group
 func (uc *GroupUseCase) LeaveGroup(ctx context.Context, groupID, userID string) error {
 	// グループを取得

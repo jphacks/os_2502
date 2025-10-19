@@ -67,6 +67,7 @@ func (r *Router) SetupRoutes() http.Handler {
 	groupPartAssignmentHandler := handler.NewGroupPartAssignmentHandler(groupPartAssignmentUC)
 	uploadImagesCollageResultHandler := handler.NewUploadImagesCollageResultHandler(uploadImagesCollageResultUC)
 	websocketHandler := handler.NewWebSocketHandler(uploadMonitor)
+	templateDataHandler := handler.NewTemplateDataHandler()
 
 	// User エンドポイント
 	mux.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +87,31 @@ func (r *Router) SetupRoutes() http.Handler {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	mux.HandleFunc("/api/users/search", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			userHandler.SearchUsersByUsername(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	mux.HandleFunc("/api/users/by-username", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			userHandler.GetUserByUsername(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	mux.HandleFunc("/api/users/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.HasSuffix(path, "/username") {
+			if r.Method == http.MethodPut || r.Method == http.MethodPatch {
+				userHandler.SetUsername(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
 		switch r.Method {
 		case http.MethodGet:
 			userHandler.GetUser(w, r)
@@ -147,6 +172,12 @@ func (r *Router) SetupRoutes() http.Handler {
 			} else {
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			}
+		case strings.HasSuffix(path, "/start-countdown"):
+			if r.Method == http.MethodPost {
+				groupHandler.StartCountdown(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
 		case strings.HasSuffix(path, "/leave"):
 			if r.Method == http.MethodDelete {
 				groupHandler.LeaveGroup(w, r)
@@ -202,6 +233,10 @@ func (r *Router) SetupRoutes() http.Handler {
 		}
 	})
 	mux.HandleFunc("/api/templates/", collageTemplateHandler.GetTemplate)
+
+	// Template Data エンドポイント (JSONテンプレート)
+	mux.HandleFunc("/api/template-data", templateDataHandler.GetTemplates)
+	mux.HandleFunc("/api/template-data/filter", templateDataHandler.GetTemplateByPhotoCount)
 
 	// Collage Result エンドポイント
 	mux.HandleFunc("/api/results", func(w http.ResponseWriter, r *http.Request) {

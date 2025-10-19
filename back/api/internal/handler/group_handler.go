@@ -436,6 +436,47 @@ func (h *GroupHandler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"message": "グループを削除しました"})
 }
 
+// StartCountdown starts the countdown for photo session
+func (h *GroupHandler) StartCountdown(w http.ResponseWriter, r *http.Request) {
+	groupID := strings.TrimPrefix(r.URL.Path, "/api/groups/")
+	groupID = strings.TrimSuffix(groupID, "/start-countdown")
+
+	if groupID == "" {
+		respondError(w, http.StatusBadRequest, "グループIDが必要です")
+		return
+	}
+
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "リクエストボディが無効です")
+		return
+	}
+
+	if req.UserID == "" {
+		respondError(w, http.StatusBadRequest, "ユーザーIDが必要です")
+		return
+	}
+
+	g, err := h.useCase.StartCountdown(r.Context(), groupID, req.UserID)
+	if err != nil {
+		switch err {
+		case group.ErrGroupNotFound:
+			respondError(w, http.StatusNotFound, err.Error())
+		case group.ErrInvalidOwnerUserID:
+			respondError(w, http.StatusForbidden, "オーナーのみ撮影開始できます")
+		case group.ErrGroupNotReadyCheck:
+			respondError(w, http.StatusBadRequest, "全員の準備が完了していません")
+		default:
+			respondError(w, http.StatusInternalServerError, "カウントダウンの開始に失敗しました")
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, toGroupResponse(g))
+}
+
 // ListGroups retrieves all groups, optionally filtered by owner_user_id
 func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
