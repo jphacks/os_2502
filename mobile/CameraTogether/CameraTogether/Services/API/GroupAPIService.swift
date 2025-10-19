@@ -157,7 +157,9 @@ class GroupAPIService: APIServiceBase {
     ///   - userId: オーナーのユーザーID
     ///   - templateId: 使用するテンプレートID
     /// - Returns: 更新されたグループ（撮影時刻とテンプレートIDを含む）
-    func startCountdown(groupId: String, userId: String, templateId: String) async throws -> APIGroup {
+    func startCountdown(groupId: String, userId: String, templateId: String) async throws
+        -> APIGroup
+    {
         let url = baseURL.appendingPathComponent("groups").appendingPathComponent(groupId)
             .appendingPathComponent("start-countdown")
         var request = URLRequest(url: url)
