@@ -83,6 +83,25 @@ class GroupAPIService: APIServiceBase {
         return try await performRequest(request, expecting: APIGroup.self)
     }
 
+    /// 招待トークンでグループ取得
+    /// - Parameter invitationToken: 招待トークン
+    /// - Returns: グループ情報
+    func getGroupByInvitationToken(invitationToken: String) async throws -> APIGroup {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("groups/by-invitation"),
+            resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "invitation_token", value: invitationToken)]
+
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        return try await performRequest(request, expecting: APIGroup.self)
+    }
+
     /// グループに参加
     /// - Parameters:
     ///   - token: 招待トークン
@@ -127,6 +146,24 @@ class GroupAPIService: APIServiceBase {
 
         let body = FinalizeGroupRequest(userId: userId)
         request.httpBody = try JSONEncoder().encode(body)
+
+        return try await performRequest(request, expecting: APIGroup.self)
+    }
+
+    /// カウントダウン開始
+    /// - Parameters:
+    ///   - groupId: グループID
+    ///   - userId: オーナーのユーザーID
+    /// - Returns: 更新されたグループ（撮影時刻を含む）
+    func startCountdown(groupId: String, userId: String) async throws -> APIGroup {
+        let url = baseURL.appendingPathComponent("groups").appendingPathComponent(groupId)
+            .appendingPathComponent("start-countdown")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = ["user_id": userId]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         return try await performRequest(request, expecting: APIGroup.self)
     }
