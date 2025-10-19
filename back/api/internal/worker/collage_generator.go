@@ -2,7 +2,12 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"image"
+	"image/draw"
+	"image/jpeg"
+	_ "image/png" // PNGデコーダーを登録
 	"log"
 	"os"
 	"path/filepath"
@@ -12,11 +17,32 @@ import (
 	"github.com/jphacks/os_2502/back/api/internal/domain/group_member"
 )
 
+// TemplateFrame テンプレートのフレーム情報
+type TemplateFrame struct {
+	ID   int    `json:"id"`
+	Path string `json:"path"`
+	X    int    `json:"x"`
+	Y    int    `json:"y"`
+	W    int    `json:"width"`
+	H    int    `json:"height"`
+}
+
+// TemplateData テンプレート情報
+type TemplateData struct {
+	Name       string          `json:"name"`
+	PhotoCount int             `json:"photo_count"`
+	ViewBox    string          `json:"viewBox"`
+	Width      int             `json:"width"`
+	Height     int             `json:"height"`
+	Frames     []TemplateFrame `json:"frames"`
+}
+
 // CollageGenerator コラージュ生成ワーカー
 type CollageGenerator struct {
 	groupRepo       group.Repository
 	groupMemberRepo group_member.Repository
 	checkInterval   time.Duration
+	templatesPath   string
 }
 
 // NewCollageGenerator コラージュ生成ワーカーを作成
@@ -33,6 +59,7 @@ func NewCollageGenerator(
 		groupRepo:       groupRepo,
 		groupMemberRepo: groupMemberRepo,
 		checkInterval:   checkInterval,
+		templatesPath:   "resources/templates.json",
 	}
 }
 
@@ -139,27 +166,181 @@ func (w *CollageGenerator) processGroup(ctx context.Context, g *group.Group) err
 
 // generateCollage コラージュ画像を生成
 func (w *CollageGenerator) generateCollage(ctx context.Context, groupID, uploadDir string) error {
-	// TODO: 実際のコラージュ生成ロジックを実装
-	// - テンプレートを取得
-	// - 各メンバーの写真を読み込み
-	// - テンプレートに従って配置
-	// - 合成画像を保存
+	log.Printf("Generating collage for group %s from %s", groupID, uploadDir)
 
-	log.Printf("🎨 Generating collage for group %s from %s", groupID, uploadDir)
+	// グループ情報を取得してテンプレートIDを確認
+	g, err := w.groupRepo.FindByID(ctx, groupID)
+	if err != nil {
+		return fmt.Errorf("failed to get group: %w", err)
+	}
 
-	// 仮実装: コラージュ結果ディレクトリを作成
+	templateID := g.TemplateID()
+	if templateID == nil || *templateID == "" {
+		return fmt.Errorf("template ID not found in group")
+	}
+
+	log.Printf("Using template ID: %s", *templateID)
+
+	// テンプレート情報を読み込み
+	template, err := w.loadTemplate(*templateID)
+	if err != nil {
+		return fmt.Errorf("failed to load template: %w", err)
+	}
+
+	log.Printf("Loaded template: %s (%dx%d)", template.Name, template.Width, template.Height)
+
+	// アップロードされた画像ファイルを取得
+	files, err := os.ReadDir(uploadDir)
+	if err != nil {
+		return fmt.Errorf("failed to read upload directory: %w", err)
+	}
+
+	// 画像ファイルのパスリストを作成
+	var imagePaths []string
+	for _, file := range files {
+		if !file.IsDir() {
+			ext := filepath.Ext(file.Name())
+			if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+				imagePaths = append(imagePaths, filepath.Join(uploadDir, file.Name()))
+			}
+		}
+	}
+
+	if len(imagePaths) != template.PhotoCount {
+		return fmt.Errorf("image count mismatch: expected %d, got %d", template.PhotoCount, len(imagePaths))
+	}
+
+	// コラージュ画像を生成
+	resultImage, err := w.createCollageImage(template, imagePaths)
+	if err != nil {
+		return fmt.Errorf("failed to create collage image: %w", err)
+	}
+
+	// 結果ディレクトリを作成
 	resultDir := "/uploads/collages"
 	if err := os.MkdirAll(resultDir, 0755); err != nil {
 		return fmt.Errorf("failed to create result directory: %w", err)
 	}
 
-	// 仮実装: 空のコラージュファイルを作成（実際には画像合成処理）
+	// コラージュ画像を保存
 	resultPath := filepath.Join(resultDir, groupID+"_collage.jpg")
-	if err := os.WriteFile(resultPath, []byte("TODO: Generate actual collage"), 0644); err != nil {
-		return fmt.Errorf("failed to write collage file: %w", err)
+	outFile, err := os.Create(resultPath)
+	if err != nil {
+		return fmt.Errorf("failed to create result file: %w", err)
+	}
+	defer outFile.Close()
+
+	if err := jpeg.Encode(outFile, resultImage, &jpeg.Options{Quality: 90}); err != nil {
+		return fmt.Errorf("failed to encode collage image: %w", err)
 	}
 
-	log.Printf("💾 Collage saved to %s", resultPath)
+	log.Printf("Collage saved to %s", resultPath)
 
 	return nil
+}
+
+// loadTemplate テンプレート情報を読み込み
+func (w *CollageGenerator) loadTemplate(templateID string) (*TemplateData, error) {
+	// templates.jsonファイルを読み込む
+	filePath := w.templatesPath
+	if !filepath.IsAbs(filePath) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get working directory: %w", err)
+		}
+		filePath = filepath.Join(wd, filePath)
+	}
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read templates file: %w", err)
+	}
+
+	var templates []TemplateData
+	if err := json.Unmarshal(data, &templates); err != nil {
+		return nil, fmt.Errorf("failed to parse templates data: %w", err)
+	}
+
+	// テンプレートIDで検索（現在はnameで検索）
+	for _, t := range templates {
+		if t.Name == templateID {
+			return &t, nil
+		}
+	}
+
+	return nil, fmt.Errorf("template not found: %s", templateID)
+}
+
+// createCollageImage コラージュ画像を作成
+func (w *CollageGenerator) createCollageImage(template *TemplateData, imagePaths []string) (image.Image, error) {
+	// キャンバスを作成（デフォルトサイズ: 1000x1000）
+	width := template.Width
+	height := template.Height
+	if width == 0 {
+		width = 1000
+	}
+	if height == 0 {
+		height = 1000
+	}
+
+	canvas := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// 各フレームに画像を配置
+	for i, frame := range template.Frames {
+		if i >= len(imagePaths) {
+			break
+		}
+
+		// 画像を読み込み
+		imgFile, err := os.Open(imagePaths[i])
+		if err != nil {
+			log.Printf("Warning: failed to open image %s: %v", imagePaths[i], err)
+			continue
+		}
+
+		img, _, err := image.Decode(imgFile)
+		imgFile.Close()
+		if err != nil {
+			log.Printf("Warning: failed to decode image %s: %v", imagePaths[i], err)
+			continue
+		}
+
+		// フレームの位置とサイズ
+		x, y, fw, fh := frame.X, frame.Y, frame.W, frame.H
+		if fw == 0 || fh == 0 {
+			// サイズが指定されていない場合は画像のサイズを使用
+			fw = img.Bounds().Dx()
+			fh = img.Bounds().Dy()
+		}
+
+		// 画像をリサイズして配置
+		resized := w.resizeImage(img, fw, fh)
+		dp := image.Point{X: x, Y: y}
+		dr := image.Rectangle{Min: dp, Max: dp.Add(resized.Bounds().Size())}
+		draw.Draw(canvas, dr, resized, image.Point{}, draw.Over)
+
+		log.Printf("Placed image %d at (%d,%d) size (%dx%d)", i, x, y, fw, fh)
+	}
+
+	return canvas, nil
+}
+
+// resizeImage 画像をリサイズ（簡易実装）
+func (w *CollageGenerator) resizeImage(img image.Image, width, height int) image.Image {
+	// 簡易的なニアレストネイバー法でリサイズ
+	bounds := img.Bounds()
+	srcW := bounds.Dx()
+	srcH := bounds.Dy()
+
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			srcX := x * srcW / width
+			srcY := y * srcH / height
+			dst.Set(x, y, img.At(bounds.Min.X+srcX, bounds.Min.Y+srcY))
+		}
+	}
+
+	return dst
 }

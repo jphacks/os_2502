@@ -615,3 +615,47 @@ func (h *GroupHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		"size":        header.Size,
 	})
 }
+
+// GetCollageImage グループIDでコラージュ画像を取得
+func (h *GroupHandler) GetCollageImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		respondError(w, http.StatusMethodNotAllowed, "メソッドが許可されていません")
+		return
+	}
+
+	// URLからグループIDを取得
+	groupID := strings.TrimPrefix(r.URL.Path, "/api/groups/")
+	groupID = strings.TrimSuffix(groupID, "/collage")
+
+	if groupID == "" {
+		respondError(w, http.StatusBadRequest, "グループIDが必要です")
+		return
+	}
+
+	// コラージュ画像のパス
+	collagePath := "/uploads/collages/" + groupID + "_collage.jpg"
+
+	// ファイルの存在確認
+	if _, err := os.Stat(collagePath); os.IsNotExist(err) {
+		respondError(w, http.StatusNotFound, "コラージュ画像が見つかりません")
+		return
+	}
+
+	// ファイルを開く
+	file, err := os.Open(collagePath)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "コラージュ画像の読み込みに失敗しました")
+		return
+	}
+	defer file.Close()
+
+	// ヘッダーを設定
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Disposition", "inline; filename="+groupID+"_collage.jpg")
+
+	// ファイルをレスポンスに書き込み
+	if _, err := io.Copy(w, file); err != nil {
+		// エラーが発生してもヘッダーは既に送信されている可能性があるため、ログのみ
+		println("Error writing collage image:", err.Error())
+	}
+}
