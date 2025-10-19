@@ -243,11 +243,11 @@ class GroupAPIService: APIServiceBase {
         }
 
         // 画像アップロードは /image エンドポイントを使用
-        let imageBaseURL = URL(string: Configuration.shared.apiUrl)!.appendingPathComponent("image")
-        let url = imageBaseURL
-            .appendingPathComponent("groups")
-            .appendingPathComponent(groupId)
-            .appendingPathComponent("photos")
+        let imageBaseURL = URL(string: Configuration.shared.apiUrl)!
+        let urlString = "\(imageBaseURL.absoluteString)/image/groups/\(groupId)/photos"
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
 
         // マルチパートフォームデータを作成
         let boundary = UUID().uuidString

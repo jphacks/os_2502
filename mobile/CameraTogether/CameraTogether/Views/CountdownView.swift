@@ -3,14 +3,17 @@ import SwiftUI
 
 struct CountdownView: View {
     @Bindable var viewModel: CollageGroupViewModel
-    @State private var countdown = 20
+    @StateObject private var cameraService = CameraService()
+    @State private var countdown = 10
     @State private var isCountingDown = true
     @State private var capturedImage: UIImage?
-    @State private var showingResult = false
+    @State private var showingTemplateSelection = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     var body: some View {
         ZStack {
-            CameraPreviewView()
+            CameraPreviewView(cameraService: cameraService)
                 .ignoresSafeArea()
 
             VStack {
@@ -29,7 +32,7 @@ struct CountdownView: View {
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.5), radius: 5)
 
-                    ProgressView(value: Double(20 - countdown), total: 20)
+                    ProgressView(value: Double(10 - countdown), total: 10)
                         .progressViewStyle(LinearProgressViewStyle(tint: .white))
                         .scaleEffect(x: 1, y: 4, anchor: .center)
                         .padding(.horizontal, 40)
@@ -47,9 +50,9 @@ struct CountdownView: View {
                         Spacer()
 
                         Button {
-                            showingResult = true
+                            showingTemplateSelection = true
                         } label: {
-                            Text("結果を見る")
+                            Text("テンプレート選択へ")
                                 .font(.title2)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
@@ -65,11 +68,43 @@ struct CountdownView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .alert("エラー", isPresented: $showingError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+        .task {
+            await setupCamera()
+        }
         .onAppear {
             startCountdown()
         }
-        .navigationDestination(isPresented: $showingResult) {
-            ResultView(viewModel: viewModel, capturedImage: capturedImage)
+        .onDisappear {
+            cameraService.stopSession()
+        }
+        .navigationDestination(isPresented: $showingTemplateSelection) {
+            TemplateSelectionView(viewModel: viewModel, capturedImage: capturedImage ?? UIImage())
+        }
+    }
+
+    private func setupCamera() async {
+        do {
+            let authorized = await cameraService.checkAuthorization()
+            if !authorized {
+                await MainActor.run {
+                    errorMessage = "カメラへのアクセスが許可されていません"
+                    showingError = true
+                }
+                return
+            }
+
+            try cameraService.setupSession()
+            cameraService.startSession()
+        } catch {
+            await MainActor.run {
+                errorMessage = "カメラの起動に失敗しました: \(error.localizedDescription)"
+                showingError = true
+            }
         }
     }
 
@@ -79,48 +114,63 @@ struct CountdownView: View {
                 countdown -= 1
             } else {
                 timer.invalidate()
-                capturePhoto()
+                Task {
+                    await capturePhoto()
+                }
             }
         }
     }
 
-    private func capturePhoto() {
-        // 実際のカメラ撮影の代わりにダミー画像を使用
-        // 実装時はCameraViewから撮影機能を統合
-        isCountingDown = false
-
-        // ダミーの撮影処理
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            capturedImage = UIImage(systemName: "photo")
-            viewModel.completeSession()
+    private func capturePhoto() async {
+        do {
+            let image = try await cameraService.capturePhoto()
+            await MainActor.run {
+                isCountingDown = false
+                capturedImage = image
+                viewModel.completeSession()
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "撮影に失敗しました: \(error.localizedDescription)"
+                showingError = true
+                isCountingDown = false
+            }
         }
     }
 }
 
 struct CameraPreviewView: UIViewRepresentable {
+    @ObservedObject var cameraService: CameraService
+
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
         view.backgroundColor = .black
 
-        // カメラプレビュー用のレイヤー
-        // 実装時はAVCaptureSessionを使用
-        let previewView = UIView()
-        previewView.backgroundColor = .darkGray
-        previewView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(previewView)
+        let previewLayer = cameraService.getPreviewLayer()
+        previewLayer.frame = view.bounds
+        view.layer.addSublayer(previewLayer)
 
-        NSLayoutConstraint.activate([
-            previewView.topAnchor.constraint(equalTo: view.topAnchor),
-            previewView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            previewView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            previewView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
+        // レイヤーのフレームを更新するためのコンテキストを保存
+        context.coordinator.previewLayer = previewLayer
 
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        // カメラプレビューの更新処理
+        // プレビューレイヤーのフレームを更新
+        if let previewLayer = context.coordinator.previewLayer {
+            DispatchQueue.main.async {
+                previewLayer.frame = uiView.bounds
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    class Coordinator {
+        var previewLayer: AVCaptureVideoPreviewLayer?
     }
 }
 

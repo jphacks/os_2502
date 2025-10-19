@@ -46,14 +46,47 @@ class QRScannerViewController: UIViewController {
         super.viewDidLoad()
 
         view.backgroundColor = UIColor.black
+
+        // カメラパーミッションを確認
+        checkCameraPermission()
+    }
+
+    private func checkCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            setupCaptureSession()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                if granted {
+                    DispatchQueue.main.async {
+                        self?.setupCaptureSession()
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        self?.showPermissionDeniedAlert()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showPermissionDeniedAlert()
+        @unknown default:
+            break
+        }
+    }
+
+    private func setupCaptureSession() {
         captureSession = AVCaptureSession()
 
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
+            failed()
+            return
+        }
         let videoInput: AVCaptureDeviceInput
 
         do {
             videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
         } catch {
+            failed()
             return
         }
 
@@ -84,6 +117,22 @@ class QRScannerViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.captureSession.startRunning()
         }
+    }
+
+    private func showPermissionDeniedAlert() {
+        let alert = UIAlertController(
+            title: "カメラへのアクセスが必要です",
+            message: "QRコードをスキャンするにはカメラへのアクセスを許可してください。設定アプリから許可できます。",
+            preferredStyle: .alert
+        )
+        alert.addAction(
+            UIAlertAction(title: "設定を開く", style: .default) { _ in
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            })
+        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
+        present(alert, animated: true)
     }
 
     func failed() {

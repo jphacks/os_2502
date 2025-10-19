@@ -66,13 +66,15 @@ struct CollageGroup: Identifiable, Codable {
     let inviteCode: String
     var ownerId: String
     var isFinalized: Bool  // メンバーが確定したかどうか
+    var scheduledCaptureTime: Date?  // サーバーが指定した撮影予定時刻（同期撮影用）
 
     init(
         id: String = UUID().uuidString,
         type: GroupType,
         maxMembers: Int = 10,
         ownerId: String,
-        isFinalized: Bool = false
+        isFinalized: Bool = false,
+        scheduledCaptureTime: Date? = nil
     ) {
         self.id = id
         self.type = type
@@ -82,6 +84,7 @@ struct CollageGroup: Identifiable, Codable {
         self.inviteCode = UUID().uuidString.prefix(8).uppercased()
         self.ownerId = ownerId
         self.isFinalized = isFinalized
+        self.scheduledCaptureTime = scheduledCaptureTime
     }
 
     var canAddMember: Bool {
@@ -106,6 +109,20 @@ extension CollageGroup {
             return nil
         }
 
+        // ISO8601形式の日時文字列をDateに変換
+        var scheduledCaptureTime: Date? = nil
+        if let timeString = apiGroup.scheduledCaptureTime {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            scheduledCaptureTime = formatter.date(from: timeString)
+
+            // フラクショナル秒なしでも試す
+            if scheduledCaptureTime == nil {
+                formatter.formatOptions = [.withInternetDateTime]
+                scheduledCaptureTime = formatter.date(from: timeString)
+            }
+        }
+
         self.id = apiGroup.id
         self.type = groupType
         self.maxMembers = apiGroup.maxMember
@@ -115,6 +132,7 @@ extension CollageGroup {
         self.ownerId = apiGroup.ownerUserId
         // ステータスがrecruitingでなければメンバー確定済みと判断
         self.isFinalized = status != .recruiting
+        self.scheduledCaptureTime = scheduledCaptureTime
     }
 
     /// CollageGroupをAPI用のパラメータに変換
