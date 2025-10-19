@@ -41,4 +41,15 @@ class TemplateAPIService: APIServiceBase {
         let response = try await performRequest(request, expecting: TemplateDataResponse.self)
         return response.templates
     }
+
+    /// IDでテンプレートを取得
+    /// - Parameter id: テンプレートID
+    /// - Returns: テンプレート
+    func getTemplate(id: String) async throws -> CollageTemplate {
+        let url = baseURL.appendingPathComponent("template-data").appendingPathComponent(id)
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        return try await performRequest(request, expecting: CollageTemplate.self)
+    }
 }
